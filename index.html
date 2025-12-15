@@ -2,21 +2,25 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Intercambio</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Intercambio Navideño</title>
+  
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  
   <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+  
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
 
   <div class="main-container">
     <div class="card">
+      
       <div class="header-nav">
-          <button id="btnAtras" class="btn-icon" style="display: none;">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+          <button id="btnAtras" class="btn-icon" style="display: none;" title="Volver">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
           </button>
           
           <h1 id="tituloPrincipal">Intercambio</h1>
@@ -25,55 +29,55 @@
       </div>
 
       <div id="vistaHome" class="view-section fade-in">
-        <p class="subtitle">Organiza tu evento navideño</p>
+        <p class="subtitle">Organiza tu evento de forma sencilla</p>
         
-        <div id="quickJoinContainer" style="display:none; margin-bottom: 20px;">
+        <div id="quickJoinContainer" style="display:none; margin-bottom: 24px;">
             <label class="section-label">Tus eventos recientes</label>
-            <div id="listaEventosGuardados" class="scroll-box compact-list"></div>
+            <div id="listaEventosGuardados" class="scroll-box"></div>
             <div class="divider">o ingresa otro código</div>
         </div>
 
         <div class="field">
           <label>Código de sala</label>
-          <input type="text" id="inputCodigoHome" placeholder="Ej: A1B2" class="input-code">
+          <input type="text" id="inputCodigoHome" placeholder="Ej: A1B2" class="input-code" autocomplete="off">
         </div>
         <button id="btnIrASala" class="btn-primary">Unirme</button>
 
         <div class="divider">o</div>
 
         <div id="seccionInvitado">
-            <button id="btnSoyAdmin" class="btn-secondary">Soy Organizador / Login</button>
+            <button id="btnSoyAdmin" class="btn-secondary">Soy Organizador / Iniciar Sesión</button>
         </div>
 
         <div id="seccionAdmin" style="display: none;">
-            <button id="btnAbrirModal" class="btn-primary label-icon">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+            <button id="btnAbrirModal" class="btn-primary" style="display:flex; align-items:center; justify-content:center; gap:10px;">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
                 Crear Nuevo Evento
             </button>
 
-            <div class="my-events-container mt-large">
+            <div class="mt-large" style="margin-top: 32px;">
                 <label class="section-label">Mis Eventos Creados</label>
-                <div id="listaMisPosadas" class="scroll-box standard-list"></div>
+                <div id="listaMisPosadas" class="scroll-box"></div>
             </div>
         </div>
       </div>
 
       <div id="vistaRegistro" style="display: none;" class="view-section fade-in">
-        <p class="subtitle">Entrando a <strong id="lblNombreSala" class="highlight">...</strong></p>
+        <p class="subtitle">Entrando a <strong id="lblNombreSala" style="color:var(--accent)">...</strong></p>
         <form id="formRegistro">
           <div class="field">
-            <label>Tu nombre</label>
-            <input type="text" id="regNombre" required autocomplete="off" placeholder="Nombre completo">
+            <label>¿Cómo te llamas?</label>
+            <input type="text" id="regNombre" required autocomplete="off" placeholder="Tu nombre completo">
           </div>
           <div class="field">
-            <label>Tu correo (Obligatorio para enviarte el resultado)</label>
-            <input type="email" id="regEmail" required autocomplete="off" placeholder="tucorreo@gmail.com">
+            <label>Tu correo (Para enviarte el resultado)</label>
+            <input type="email" id="regEmail" required autocomplete="off" placeholder="nombre@correo.com">
           </div>
           <div class="field">
             <label>Sugerencia de regalo</label>
-            <input type="text" id="regDeseo" required placeholder="Ej. Libro, Taza..." autocomplete="off">
+            <input type="text" id="regDeseo" required placeholder="Ej. Libro, Taza, Calcetines..." autocomplete="off">
           </div>
-          <button type="submit" class="btn-primary">Confirmar Entrada</button>
+          <button type="submit" class="btn-primary">Confirmar y Entrar</button>
         </form>
       </div>
 
@@ -81,11 +85,11 @@
         <div class="lobby-header-card">
            <div class="lobby-info">
                <h2 id="lobbyNombreSala">Evento</h2>
-               <p id="lobbyCodigo" class="code-badge">CÓDIGO: ----</p>
+               <p id="lobbyCodigo" class="code-badge">----</p>
            </div>
-           <div class="lobby-stats">
-               <span id="lobbyContador" class="stat-number">0/0</span>
-               <span class="stat-label">Participantes</span>
+           <div class="lobby-stats" style="margin-top:16px;">
+               <span id="lobbyContador" style="font-size:2rem; font-weight:800; color:var(--text-primary)">0/0</span>
+               <span style="display:block; font-size:0.75rem; color:var(--text-secondary); font-weight:700; letter-spacing:1px; text-transform:uppercase;">Participantes</span>
            </div>
         </div>
         
@@ -94,39 +98,42 @@
             <div id="timerDisplay">--d --h --m</div>
         </div>
 
-        <div class="list-section mt-large">
+        <div class="mt-large" style="margin-top: 32px;">
             <label class="section-label">En la sala</label>
-            <div id="listaParticipantes" class="scroll-box compact-list"></div>
+            <div id="listaParticipantes" class="scroll-box" style="background:#FAFAFA; border-radius:16px; padding:16px;"></div>
         </div>
 
         <div id="panelAdminControls" style="display: none;" class="admin-panel">
-            <div class="admin-label">Panel de Control</div>
+            <div class="divider">Panel de Control</div>
             
-            <button id="btnPreSorteo" class="btn-accent">Forzar Sorteo Manual</button>
-            <p style="font-size:0.75rem; color:#8C8A85; text-align:center; margin-top:5px;">(El sorteo será automático al llenarse la sala)</p>
+            <button id="btnPreSorteo" class="btn-accent">Forzar Sorteo Ahora</button>
+            <p style="font-size:0.75rem; color:#A0A0A0; text-align:center; margin-top:8px;">(El sorteo es automático al llenarse la sala)</p>
             
             <div id="adminResultadosList" style="display:none;" class="results-container">
-                <p class="section-label" style="margin-top: 20px;">Resultados</p>
-                <div id="listaParejasAdmin" class="compact-list" style="margin-bottom: 20px;"></div>
+                <p class="section-label" style="margin-top: 24px; text-align:center;">Resultados Generados</p>
+                <div id="listaParejasAdmin" class="scroll-box" style="max-height:200px; margin-bottom: 20px;"></div>
             </div>
 
             <button id="btnEliminarEventoFinal" class="btn-danger">Eliminar Evento</button>
         </div>
 
-        <p id="msgEspera" class="status-message">Esperando a que se llene la sala...</p>
+        <p id="msgEspera" style="text-align:center; color:#A0A0A0; margin-top:32px; font-style:italic;">Esperando a que se llene la sala...</p>
       </div>
 
       <div id="vistaResultado" style="display: none;" class="view-section fade-in centered-content">
-          <h2 class="highlight" style="font-size: 1.5rem; margin-bottom: 10px;">Tu Resultado</h2>
-          <p class="subtitle">Debes regalar a</p>
+          <h2 style="color:var(--accent); font-size: 1.5rem; margin-bottom: 10px;">¡Sorteo Listo!</h2>
+          <p class="subtitle">Te ha tocado regalarle a:</p>
+          
           <div class="result-reveal-card">
-              <h1 id="resNombreDestino">...</h1>
+              <h1 id="resNombreDestino" style="font-size:2.5rem; margin:0; line-height:1.1;">...</h1>
               <div class="gift-divider">🎁</div>
-              <p class="wish-label">Sugerencia:</p>
-              <p id="resDeseoDestino" class="wish-text">...</p>
+              <p style="font-size:0.85rem; color:#A0A0A0; font-weight:700; letter-spacing:1px; text-transform:uppercase;">Su deseo es:</p>
+              <p id="resDeseoDestino" style="font-size:1.4rem; color:var(--text-primary); font-style:italic; margin-top:8px; font-weight:600;">...</p>
           </div>
-          <p style="font-size: 0.8rem; color: #8C8A85; margin-top: 20px;">
-              Se ha enviado un correo con esta información.
+          
+          <p style="font-size: 0.85rem; color: #858585; margin-top: 24px; line-height:1.5;">
+              Hemos enviado un correo de confirmación a tu email.<br>
+              ¡No le digas a nadie! 🤫
           </p>
       </div>
 
@@ -137,7 +144,7 @@
     <div class="modal-box">
         <h3 class="modal-title">Nuevo Evento</h3>
         <div class="field">
-            <label>Nombre</label>
+            <label>Nombre del evento</label>
             <input type="text" id="newNombre" placeholder="Ej. Cena Navideña" autocomplete="off">
         </div>
         <div class="field">
@@ -147,10 +154,11 @@
             </div>
         </div>
         <div class="field">
-            <label>Capacidad (Sorteo automático al llegar)</label>
+            <label>Capacidad</label>
             <input type="number" id="newMax" value="10" min="2">
+            <small style="color:#A0A0A0; font-size:0.75rem; margin-top:4px; display:block;">El sorteo inicia automáticamente al llegar a este número.</small>
         </div>
-        <div class="modal-actions footer-actions">
+        <div class="footer-actions">
             <button id="btnCancelarModal" class="btn-ghost">Cancelar</button>
             <button id="btnConfirmarCrear" class="btn-primary">Crear</button>
         </div>
@@ -158,12 +166,12 @@
   </div>
 
   <div id="modalConfirmacion" class="modal-overlay" style="z-index: 10000;">
-      <div class="modal-box confirm-box">
-          <h3 class="modal-title">Confirmar</h3>
-          <p id="txtConfirmacion" class="confirm-message">...</p>
-          <div class="modal-actions footer-actions">
-              <button id="btnNoConfirm" class="btn-ghost">Cancelar</button>
-              <button id="btnSiConfirm" class="btn-primary">Confirmar</button>
+      <div class="modal-box" style="text-align:center;">
+          <h3 class="modal-title">¿Estás seguro?</h3>
+          <p id="txtConfirmacion" class="confirm-message" style="margin-bottom:24px;">...</p>
+          <div class="footer-actions">
+              <button id="btnNoConfirm" class="btn-ghost">No, cancelar</button>
+              <button id="btnSiConfirm" class="btn-primary">Sí, confirmar</button>
           </div>
       </div>
   </div>
