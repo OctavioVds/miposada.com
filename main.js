@@ -465,29 +465,42 @@ async function realizarSorteo(esAutomatico = false) {
         let givers = [...parts].sort(() => Math.random() - 0.5);
         let asignaciones = {};
         
-        // Ejecutar sorteo y enviar correos
+        // Ejecutar sorteo
+        const promesasDeCorreo = []; // Para guardar los intentos de envío
+
         for(let i=0; i<givers.length; i++) {
             const quienDa = givers[i];
             const quienRecibe = givers[(i+1) % givers.length];
             asignaciones[quienDa.nombre] = quienRecibe;
 
-            // ENVIAR CORREO REAL CON TUS CLAVES
+            // ENVIAR CORREO REAL
             if(window.emailjs) {
-                emailjs.send(EMAIL_SERVICE_ID, EMAIL_TEMPLATE_ID, {
+                const envio = emailjs.send(EMAIL_SERVICE_ID, EMAIL_TEMPLATE_ID, {
                     to_name: quienDa.nombre,
-                    to_email: quienDa.email,
+                    to_email: quienDa.email, // IMPORTANTE: Esto debe coincidir con {{to_email}} en el dashboard
                     target_name: quienRecibe.nombre,
                     target_wish: quienRecibe.deseo
-                });
+                })
+                .then(() => console.log(`Correo enviado a ${quienDa.nombre}`))
+                .catch((err) => console.error(`FALLÓ correo a ${quienDa.nombre}:`, err));
+                
+                promesasDeCorreo.push(envio);
             }
         }
 
+        // Guardar en Firebase
         await updateDoc(salaRef, { estado: 'cerrada', resultados: asignaciones });
-        if(!esAutomatico) notificar("Sorteo realizado y correos enviados.", "success");
+        
+        if(!esAutomatico) {
+            notificar("Sorteo realizado. Enviando correos...", "success");
+            // Esperar a que terminen los correos para ver en consola
+            await Promise.all(promesasDeCorreo);
+            console.log("Proceso de correos finalizado.");
+        }
 
     } catch (e) {
         console.error(e);
-        notificar("Error en el sorteo", "error");
+        notificar("Error crítico en el sorteo", "error");
     }
 }
 
