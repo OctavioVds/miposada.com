@@ -11,7 +11,8 @@
   --text-primary: #3F3D3B; /* Gris carbón suave */
   --text-secondary: #8C8A85; /* Gris piedra */
   
-  --border-color: #D1D5DB; /* Gris válido */
+  /* CORREGIDO: Antes decía #DQD8D0 (Q no es válida), ahora es un gris válido */
+  --border-color: #D1D5DB; 
   
   --success: #5D8A66;      /* Verde pino suave */
   --danger: #B94A48;       /* Rojo suave para errores */

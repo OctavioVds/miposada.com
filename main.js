@@ -17,7 +17,7 @@ const firebaseConfig = {
   appId: "1:367576712970:web:51f77ff6ea7b8d83de1cf3"
 };
 
-// --- CONFIGURACIÓN EMAILJS (YA LISTA CON TUS CLAVES) ---
+// --- CONFIGURACIÓN EMAILJS (TUS CLAVES REALES) ---
 const EMAIL_SERVICE_ID = "service_ao73611"; 
 const EMAIL_TEMPLATE_ID = "template_dp7jafi"; 
 const EMAIL_PUBLIC_KEY = "l-_4LrQW8pN7F7MiK"; 
