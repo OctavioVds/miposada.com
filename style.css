@@ -1,22 +1,23 @@
 :root {
-  /* Paleta Navideña Moderna */
-  --bg-app: #1A0F1A;       /* Rojo vino muy oscuro */
-  --bg-card: #2D1B2D;      /* Color ciruela profundo */
-  --bg-input: #3E2C3E;     /* Tono berenjena */
+  /* Paleta Navideña CLARA y Moderna */
+  --bg-app: #F8FAF6;       /* Blanco nieve con un matiz muy fresco */
+  --bg-card: #FFFFFF;      /* Blanco puro para la tarjeta */
+  --bg-input: #F3F4F6;     /* Gris muy claro para inputs */
   
-  --accent: #D4AF37;       /* Dorado elegante (Metallic Gold) */
-  --accent-hover: #BFA133;
+  --accent: #F59E0B;       /* Dorado/Amarillo brillante y cálido */
+  --accent-hover: #D97706;
+  --festive-red: #DC2626;  /* Nuevo: Rojo vivo para detalles festivos */
   
-  --text-primary: #F3E5AB; /* Crema vainilla */
-  --text-secondary: #C7B299; /* Beige cálido */
+  --text-primary: #111827; /* Texto oscuro profundo para contraste nítido */
+  --text-secondary: #6B7280; /* Gris medio suave */
   
-  --border-color: #4A354A; /* Borde sutil rojizo */
+  --border-color: #E5E7EB; /* Bordes gris claro sutiles */
   
-  --success: #008F39;      /* Verde esmeralda navideño */
-  --danger: #C41E3A;       /* Rojo cardenal vibrante */
+  --success: #059669;      /* Verde esmeralda vibrante */
+  --danger: #DC2626;       /* Rojo vibrante */
   
-  --radius-lg: 20px;
-  --radius-md: 14px;
+  --radius-lg: 24px;       /* Bordes un poco más redondeados y amigables */
+  --radius-md: 16px;
 }
 
 * { box-sizing: border-box; font-family: 'Inter', sans-serif; }
@@ -24,161 +25,168 @@
 body {
   margin: 0; padding: 20px; min-height: 100vh;
   display: flex; align-items: center; justify-content: center;
-  /* Gradiente sutil rojo-verde oscuro */
-  background: linear-gradient(135deg, #1A0F1A, #0F1A15);
+  /* Gradiente luminoso: blanco nieve a un toque muy sutil de calidez */
+  background: linear-gradient(135deg, #FFFFFF, #F0FDF4, #FEF2F2);
   color: var(--text-primary);
 }
 
 .main-container { width: 100%; max-width: 440px; margin: 0 auto; }
 
 .card {
-  background: var(--bg-card); border-radius: var(--radius-lg); padding: 32px 28px;
-  box-shadow: 0 15px 35px -5px rgba(0, 0, 0, 0.5), 0 0 20px rgba(212, 175, 55, 0.1) inset; /* Brillo dorado sutil interno */
+  background: var(--bg-card); border-radius: var(--radius-lg); padding: 36px 30px;
+  /* Sombra suave y difusa para fondo claro, con un toque dorado sutil */
+  box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.1), 0 0 30px rgba(245, 158, 11, 0.05) inset;
   border: 1px solid var(--border-color); position: relative;
 }
 
 /* HEADER */
 .header-nav {
     display: flex; align-items: center; justify-content: space-between;
-    margin-bottom: 32px; height: 32px; position: relative;
+    margin-bottom: 36px; height: 32px; position: relative;
 }
 .header-nav h1 {
-    font-size: 1.25rem; font-weight: 700; margin: 0; color: var(--accent);
+    font-size: 1.35rem; font-weight: 800; margin: 0; color: var(--accent);
     position: absolute; left: 50%; transform: translateX(-50%); white-space: nowrap;
-    text-shadow: 0 2px 10px rgba(212, 175, 55, 0.3);
+    /* Sombra sutil dorada */
+    text-shadow: 1px 1px 2px rgba(245, 158, 11, 0.2);
 }
 .btn-icon, .btn-text {
     background: transparent; border: none; color: var(--text-secondary);
     padding: 8px; cursor: pointer; display: flex; align-items: center;
-    font-weight: 500; z-index: 2; transition: 0.3s;
+    font-weight: 600; z-index: 2; transition: 0.3s;
 }
-.btn-icon:hover, .btn-text:hover { color: var(--accent); text-shadow: 0 0 5px var(--accent); }
+.btn-icon:hover, .btn-text:hover { color: var(--festive-red); background: rgba(220, 38, 38, 0.05); border-radius: 8px; }
 
 /* CONTENT */
-.subtitle { text-align: center; font-size: 0.95rem; color: var(--text-secondary); margin-bottom: 28px; font-weight: 400; }
-.highlight { color: var(--accent); font-weight: 600; }
-.section-label { display: block; font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 12px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; }
-.mt-large { margin-top: 32px; }
+.subtitle { text-align: center; font-size: 1rem; color: var(--text-secondary); margin-bottom: 32px; font-weight: 500; }
+.highlight { color: var(--accent); font-weight: 700; }
+.section-label { display: block; font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 12px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; }
+.mt-large { margin-top: 36px; }
 .centered-content { text-align: center; }
 
 /* INPUTS & BUTTONS */
 .field { margin-bottom: 24px; }
-label { display: block; font-size: 0.9rem; margin-bottom: 8px; color: var(--text-primary); font-weight: 500; }
+label { display: block; font-size: 0.95rem; margin-bottom: 8px; color: var(--text-primary); font-weight: 600; }
 input {
-    width: 100%; padding: 14px 16px; border-radius: var(--radius-md);
-    border: 1px solid var(--border-color); background: var(--bg-input);
-    color: var(--text-primary); font-size: 1rem; outline: none; transition: 0.3s;
+    width: 100%; padding: 16px 18px; border-radius: var(--radius-md);
+    border: 2px solid var(--border-color); background: var(--bg-input);
+    color: var(--text-primary); font-size: 1rem; outline: none; transition: 0.3s; font-weight: 500;
 }
-input::placeholder { color: #8D7A8D; }
-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.2); }
-.input-code { text-align: center; text-transform: uppercase; font-size: 1.5rem; letter-spacing: 3px; font-weight: 600; padding: 16px; }
-.date-input-wrapper input { color-scheme: dark; }
+input::placeholder { color: #9CA3AF; }
+input:focus { border-color: var(--accent); background: #FFF; box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.1); }
+.input-code { text-align: center; text-transform: uppercase; font-size: 1.5rem; letter-spacing: 3px; font-weight: 700; padding: 16px; color: var(--accent); }
+.date-input-wrapper input { color-scheme: light; } /* Icono de calendario oscuro para fondo claro */
 
 button { cursor: pointer; border: none; transition: 0.3s; font-family: inherit; }
 .btn-primary {
-    width: 100%; padding: 16px; border-radius: var(--radius-md);
-    background: linear-gradient(135deg, var(--accent), #BFA133); /* Gradiente dorado */
-    color: #1A0F1A; font-weight: 700; font-size: 1rem;
-    box-shadow: 0 5px 15px rgba(212, 175, 55, 0.3);
+    width: 100%; padding: 18px; border-radius: var(--radius-md);
+    background: linear-gradient(135deg, var(--accent), #FBBF24); /* Gradiente dorado brillante */
+    color: white; font-weight: 700; font-size: 1.05rem;
+    box-shadow: 0 8px 20px -5px rgba(245, 158, 11, 0.4);
 }
-.btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(212, 175, 55, 0.4); }
+.btn-primary:hover { transform: translateY(-2px); box-shadow: 0 12px 25px -8px rgba(245, 158, 11, 0.5); filter: brightness(1.05); }
 .label-icon { display: flex; align-items: center; justify-content: center; gap: 8px; }
 
 .btn-secondary {
-    width: 100%; padding: 16px; border-radius: var(--radius-md);
-    background: transparent; border: 2px solid var(--border-color);
-    color: var(--text-primary); font-weight: 600; font-size: 1rem;
+    width: 100%; padding: 18px; border-radius: var(--radius-md);
+    background: white; border: 2px solid var(--border-color);
+    color: var(--text-primary); font-weight: 700; font-size: 1.05rem;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
 }
-.btn-secondary:hover { border-color: var(--accent); background: rgba(212, 175, 55, 0.05); color: var(--accent); }
+/* Hover rojo festivo para el botón secundario */
+.btn-secondary:hover { border-color: var(--festive-red); background: #FEF2F2; color: var(--festive-red); transform: translateY(-1px); box-shadow: 0 6px 10px -2px rgba(220, 38, 38, 0.1); }
 
 .btn-ghost { padding: 14px; border-radius: var(--radius-md); background: transparent; color: var(--text-secondary); font-weight: 600; flex: 1; }
 .btn-ghost:hover { background: var(--bg-input); color: var(--text-primary); }
-.btn-accent { width: 100%; padding: 14px; border-radius: var(--radius-md); background: linear-gradient(135deg, var(--success), #006B2B); color: white; font-weight: 600; font-size: 1rem; box-shadow: 0 5px 15px rgba(0, 143, 57, 0.3); }
-.btn-accent:hover { transform: translateY(-2px); }
+.btn-accent { width: 100%; padding: 16px; border-radius: var(--radius-md); background: linear-gradient(135deg, var(--success), #34D399); color: white; font-weight: 700; font-size: 1rem; box-shadow: 0 8px 20px -5px rgba(16, 185, 129, 0.4); }
+.btn-accent:hover { transform: translateY(-2px); filter: brightness(1.05); }
 
-.divider { text-align: center; margin: 28px 0; font-size: 0.9rem; color: var(--text-secondary); font-weight: 500; position: relative; }
-.divider::before, .divider::after { content: ""; position: absolute; top: 50%; width: 40%; height: 1px; background: var(--border-color); }
+.divider { text-align: center; margin: 30px 0; font-size: 0.95rem; color: var(--text-secondary); font-weight: 600; position: relative; }
+.divider::before, .divider::after { content: ""; position: absolute; top: 50%; width: 40%; height: 2px; background: var(--border-color); border-radius: 2px; }
 .divider::before { left: 0; } .divider::after { right: 0; }
 
 /* MIS EVENTOS LISTA */
-.scroll-box { max-height: 280px; overflow-y: auto; padding-right: 4px; }
+.scroll-box { max-height: 280px; overflow-y: auto; padding-right: 6px; }
 .scroll-box::-webkit-scrollbar { width: 6px; }
-.scroll-box::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 4px; }
+.scroll-box::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 10px; }
+.scroll-box::-webkit-scrollbar-track { background: transparent; }
 
 .standard-list div {
     display: flex; justify-content: space-between; align-items: center;
-    padding: 18px; background: var(--bg-input); border-radius: var(--radius-md);
-    margin-bottom: 14px; border: 1px solid var(--border-color); transition: 0.3s;
+    padding: 18px; background: white; border-radius: var(--radius-md);
+    margin-bottom: 14px; border: 2px solid var(--border-color); transition: 0.3s;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.02);
 }
-.standard-list div:hover { border-color: var(--accent); transform: translateX(2px); }
-.compact-list div { padding: 14px; border-bottom: 1px solid var(--border-color); color: var(--text-primary); font-weight: 500; display: flex; align-items: center; gap: 8px; }
+.standard-list div:hover { border-color: var(--accent); transform: translateX(4px); box-shadow: 0 4px 12px rgba(245, 158, 11, 0.1); }
+.compact-list div { padding: 16px; border-bottom: 1px solid var(--border-color); color: var(--text-primary); font-weight: 600; display: flex; align-items: center; gap: 10px; }
 
 /* LOBBY & RESULTADOS */
 .lobby-header-card {
-    background: linear-gradient(to right, var(--bg-input), var(--bg-card));
-    border-radius: var(--radius-md); padding: 24px;
-    display: flex; justify-content: space-between; align-items: center; border: 1px solid var(--border-color);
+    background: linear-gradient(to right, #FFF, #FEFCE8); /* Degradado sutil cálido */
+    border-radius: var(--radius-md); padding: 28px;
+    display: flex; justify-content: space-between; align-items: center; border: 2px solid var(--border-color);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.03);
 }
-.lobby-info h2 { margin: 0; font-size: 1.3rem; font-weight: 700; color: var(--accent); }
-.code-badge { margin: 6px 0 0 0; color: var(--text-primary); font-weight: 600; font-size: 0.9rem; letter-spacing: 1px; background: rgba(212, 175, 55, 0.15); padding: 4px 8px; border-radius: 6px; display: inline-block; }
+.lobby-info h2 { margin: 0; font-size: 1.4rem; font-weight: 800; color: var(--accent); }
+.code-badge { margin: 8px 0 0 0; color: var(--text-primary); font-weight: 700; font-size: 1rem; letter-spacing: 2px; background: #FEF3C7; padding: 6px 12px; border-radius: 8px; display: inline-block; border: 1px solid #FDE68A; }
 .lobby-stats { text-align: right; }
-.stat-number { display: block; font-size: 1.5rem; font-weight: 700; color: var(--accent); }
-.stat-label { font-size: 0.75rem; color: var(--text-secondary); text-transform: uppercase; font-weight: 600; letter-spacing: 1px; }
+.stat-number { display: block; font-size: 1.6rem; font-weight: 800; color: var(--festive-red); }
+.stat-label { font-size: 0.8rem; color: var(--text-secondary); text-transform: uppercase; font-weight: 700; letter-spacing: 1px; }
 
-.countdown-timer { text-align: center; margin: 28px 0; padding: 24px; background: rgba(212, 175, 55, 0.05); border-radius: var(--radius-md); border: 1px solid rgba(212, 175, 55, 0.2); position: relative; overflow: hidden; }
-.countdown-timer::before { content: "🎄"; position: absolute; top: -10px; left: 20px; font-size: 4rem; opacity: 0.05; transform: rotate(-20deg); }
-.countdown-timer::after { content: "🎁"; position: absolute; bottom: -10px; right: 20px; font-size: 4rem; opacity: 0.05; transform: rotate(20deg); }
-.countdown-timer small { color: var(--accent); text-transform: uppercase; font-weight: 700; font-size: 0.75rem; letter-spacing: 2px;}
-#timerDisplay { font-size: 2rem; font-weight: 700; margin-top: 8px; font-variant-numeric: tabular-nums; color: var(--text-primary); text-shadow: 0 2px 10px rgba(212, 175, 55, 0.2); }
+.countdown-timer { text-align: center; margin: 32px 0; padding: 28px; background: #FEFCE8; border-radius: var(--radius-md); border: 2px solid #FDE68A; position: relative; overflow: hidden; box-shadow: 0 4px 15px rgba(245, 158, 11, 0.1); }
+.countdown-timer::before { content: "🎄"; position: absolute; top: -10px; left: 15px; font-size: 4rem; opacity: 0.1; transform: rotate(-20deg); filter: grayscale(0.5); }
+.countdown-timer::after { content: "🎁"; position: absolute; bottom: -10px; right: 15px; font-size: 4rem; opacity: 0.1; transform: rotate(20deg); filter: grayscale(0.5); }
+.countdown-timer small { color: var(--accent); text-transform: uppercase; font-weight: 800; font-size: 0.8rem; letter-spacing: 2px;}
+#timerDisplay { font-size: 2.2rem; font-weight: 800; margin-top: 8px; font-variant-numeric: tabular-nums; color: var(--text-primary); }
 
-.admin-panel { border-top: 2px dashed var(--border-color); padding-top: 28px; position: relative; }
-.admin-label { text-align: center; color: var(--accent); font-size: 0.85rem; font-weight: 700; margin-bottom: 16px; text-transform: uppercase; letter-spacing: 1.5px; }
-.status-message { text-align: center; color: var(--text-secondary); margin-top: 32px; font-style: italic; font-weight: 500; }
+.admin-panel { border-top: 2px dashed var(--border-color); padding-top: 32px; position: relative; }
+.admin-label { text-align: center; color: var(--festive-red); font-size: 0.9rem; font-weight: 800; margin-bottom: 20px; text-transform: uppercase; letter-spacing: 1.5px; }
+.status-message { text-align: center; color: var(--text-secondary); margin-top: 36px; font-style: italic; font-weight: 500; background: var(--bg-input); padding: 12px; border-radius: 12px;}
 
-.result-title { color: var(--accent); margin-bottom: 8px; font-size: 1.8rem; text-shadow: 0 2px 10px rgba(212, 175, 55, 0.3); }
+.result-title { color: var(--accent); margin-bottom: 12px; font-size: 2rem; font-weight: 800; }
 .result-reveal-card {
-    background: linear-gradient(135deg, var(--bg-input), var(--bg-card));
-    padding: 40px 32px; border-radius: 24px;
-    margin: 32px 0; border: 2px solid var(--accent);
-    box-shadow: 0 0 50px rgba(212, 175, 55, 0.15); position: relative; overflow: hidden;
+    background: #FFF;
+    padding: 48px 32px; border-radius: 24px;
+    margin: 36px 0; border: 3px solid var(--accent);
+    box-shadow: 0 20px 50px rgba(245, 158, 11, 0.2); position: relative; overflow: hidden;
 }
-/* Copos de nieve sutiles en el resultado */
-.result-reveal-card::before { content: "❄️"; position: absolute; top: 10px; left: 10px; font-size: 2rem; opacity: 0.1; }
-.result-reveal-card::after { content: "❄️"; position: absolute; bottom: 10px; right: 10px; font-size: 3rem; opacity: 0.1; }
+/* Copos de nieve sutiles oscuros */
+.result-reveal-card::before { content: "❄️"; position: absolute; top: 15px; left: 15px; font-size: 2.5rem; opacity: 0.05; color: #111; }
+.result-reveal-card::after { content: "❄️"; position: absolute; bottom: 15px; right: 15px; font-size: 3.5rem; opacity: 0.05; color: #111; }
 
-#resNombreDestino { font-size: 2.2rem; margin: 0; font-weight: 800; letter-spacing: 0.5px; color: var(--text-primary); }
-.gift-divider { margin: 24px 0; font-size: 2rem; filter: drop-shadow(0 2px 5px rgba(0,0,0,0.3)); }
-.wish-label { font-size: 0.95rem; color: var(--text-secondary); margin: 0; font-weight: 500; }
-.wish-text { font-size: 1.3rem; color: var(--accent); font-style: italic; margin-top: 8px; font-weight: 600; }
+#resNombreDestino { font-size: 2.4rem; margin: 0; font-weight: 900; letter-spacing: 1px; color: var(--text-primary); }
+.gift-divider { margin: 28px 0; font-size: 2.5rem; filter: drop-shadow(0 4px 8px rgba(0,0,0,0.1)); }
+.wish-label { font-size: 1rem; color: var(--text-secondary); margin: 0; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
+.wish-text { font-size: 1.4rem; color: var(--festive-red); font-style: italic; margin-top: 10px; font-weight: 700; }
 
 /* MODALES & TOASTS */
 .modal-overlay {
     position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-    background: rgba(10, 5, 10, 0.95); backdrop-filter: blur(8px);
+    background: rgba(255, 255, 255, 0.6); backdrop-filter: blur(12px); /* Fondo claro desenfocado */
     display: none; align-items: center; justify-content: center; z-index: 1000;
 }
 .modal-box {
-    background: var(--bg-card); width: 90%; max-width: 420px;
-    padding: 36px; border-radius: 24px; border: 1px solid var(--border-color);
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6); animation: modalUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    background: #FFF; width: 90%; max-width: 440px;
+    padding: 40px; border-radius: 28px; border: 1px solid var(--border-color);
+    box-shadow: 0 30px 60px -15px rgba(0, 0, 0, 0.15); animation: modalUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
-.modal-title { margin: 0 0 28px 0; font-weight: 700; font-size: 1.4rem; text-align: center; color: var(--accent); }
+.modal-title { margin: 0 0 32px 0; font-weight: 800; font-size: 1.5rem; text-align: center; color: var(--text-primary); }
 .footer-actions { display: flex; gap: 16px; margin-top: 36px; }
 .footer-actions button { flex: 1; }
-.confirm-message { text-align: center; color: var(--text-primary); line-height: 1.6; font-size: 1.05rem; }
+.confirm-message { text-align: center; color: var(--text-primary); line-height: 1.6; font-size: 1.1rem; font-weight: 500; }
 
 .fade-in { animation: fadeIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; opacity: 0; }
-@keyframes fadeIn { from { opacity: 0; transform: translateY(15px) scale(0.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
-@keyframes modalUp { from { opacity: 0; transform: scale(0.92) translateY(20px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(20px) scale(0.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
+@keyframes modalUp { from { opacity: 0; transform: scale(0.95) translateY(25px); } to { opacity: 1; transform: scale(1) translateY(0); } }
 
-#toast-container { position: fixed; top: 24px; right: 24px; z-index: 2000; display: flex; flex-direction: column; gap: 12px; }
+#toast-container { position: fixed; top: 24px; right: 24px; z-index: 2000; display: flex; flex-direction: column; gap: 14px; }
 .toast {
-    background: var(--bg-card); color: var(--text-primary); padding: 16px 24px;
+    background: #FFF; color: var(--text-primary); padding: 18px 26px;
     border-radius: var(--radius-md); font-size: 0.95rem; font-weight: 600;
-    border: 1px solid var(--border-color); box-shadow: 0 10px 30px rgba(0,0,0,0.4);
-    display: flex; align-items: center; backdrop-filter: blur(10px);
+    border: 1px solid var(--border-color); box-shadow: 0 15px 30px rgba(0,0,0,0.08);
+    display: flex; align-items: center;
 }
-.toast::before { content: ""; margin-right: 12px; height: 10px; width: 10px; border-radius: 50%; }
-.toast.success::before { background: var(--success); box-shadow: 0 0 10px var(--success); }
-.toast.error::before { background: var(--danger); box-shadow: 0 0 10px var(--danger); }
-.toast.info::before { background: var(--accent); box-shadow: 0 0 10px var(--accent); }
+.toast::before { content: ""; margin-right: 14px; height: 12px; width: 12px; border-radius: 50%; }
+.toast.success::before { background: var(--success); box-shadow: 0 0 12px var(--success); }
+.toast.error::before { background: var(--danger); box-shadow: 0 0 12px var(--danger); }
+.toast.info::before { background: var(--accent); box-shadow: 0 0 12px var(--accent); }
