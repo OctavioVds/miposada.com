@@ -1,4 +1,4 @@
-// --- IMPORTAR LIBRERÍAS DE FIREBASE ---
+// --- IMPORTAR LIBRERÍAS ---
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { 
     getFirestore, collection, addDoc, query, where, getDocs, doc, updateDoc, arrayUnion, onSnapshot, getDoc 
@@ -7,7 +7,7 @@ import {
     getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged 
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-// CONFIGURACIÓN (TUS CLAVES)
+// --- CONFIGURACIÓN ---
 const firebaseConfig = {
   apiKey: "AIzaSyCwFd_oNfHkUi25GYME0NxuX70cHZT6k6w",
   authDomain: "miposada-98daf.firebaseapp.com",
@@ -23,8 +23,8 @@ const auth = getAuth(app);
 const provider = new GoogleAuthProvider();
 provider.setCustomParameters({ prompt: 'select_account' });
 
-// --- UTILIDAD: MENSAJES BONITOS (TOASTS) ---
-function mostrarNotificacion(mensaje, tipo = 'info') {
+// --- UI HELPERS ---
+function notificar(msg, tipo = 'info') {
     let container = document.getElementById('toast-container');
     if (!container) {
         container = document.createElement('div');
@@ -33,230 +33,225 @@ function mostrarNotificacion(mensaje, tipo = 'info') {
     }
     const toast = document.createElement('div');
     toast.className = `toast ${tipo}`;
-    toast.innerText = mensaje;
+    toast.innerText = msg;
     container.appendChild(toast);
     setTimeout(() => {
-        toast.style.animation = 'fadeOut 0.5s forwards';
-        setTimeout(() => toast.remove(), 500);
-    }, 4000);
+        toast.style.opacity = '0';
+        setTimeout(() => toast.remove(), 300);
+    }, 3000);
 }
 
-// --- UTILIDAD: CONFIRMACIÓN BONITA (SIN ALERTAS FEAS) ---
-function confirmarAccion(mensaje, accionSi, accionNo = null) {
+function confirmar(mensaje, accionSi) {
     const modal = document.getElementById('modalConfirmacion');
-    const txt = document.getElementById('txtConfirmacion');
-    const btnSi = document.getElementById('btnSiConfirm');
-    const btnNo = document.getElementById('btnNoConfirm');
-
-    txt.innerText = mensaje;
+    document.getElementById('txtConfirmacion').innerText = mensaje;
     modal.style.display = 'flex';
 
-    // Limpiar eventos anteriores (clonar nodo)
+    // Clonar para limpiar eventos previos
+    const btnSi = document.getElementById('btnSiConfirm');
+    const btnNo = document.getElementById('btnNoConfirm');
     const nuevoSi = btnSi.cloneNode(true);
     const nuevoNo = btnNo.cloneNode(true);
+    
     btnSi.parentNode.replaceChild(nuevoSi, btnSi);
     btnNo.parentNode.replaceChild(nuevoNo, btnNo);
 
-    nuevoSi.addEventListener('click', () => {
-        modal.style.display = 'none';
-        accionSi();
-    });
-
-    nuevoNo.addEventListener('click', () => {
-        modal.style.display = 'none';
-        if(accionNo) accionNo();
-    });
+    nuevoSi.addEventListener('click', () => { modal.style.display = 'none'; accionSi(); });
+    nuevoNo.addEventListener('click', () => { modal.style.display = 'none'; });
 }
 
-// --- VARIABLES ---
-const vHome = document.getElementById('vistaHome');
-const vAdmin = document.getElementById('vistaAdminDashboard');
-const vRegistro = document.getElementById('vistaRegistro');
-const vLobby = document.getElementById('vistaLobby');
-const vResultado = document.getElementById('vistaResultado');
-const allVistas = [vHome, vAdmin, vRegistro, vLobby, vResultado];
+// --- VARIABLES DE ESTADO ---
+const vistas = {
+    home: document.getElementById('vistaHome'),
+    admin: document.getElementById('vistaAdminDashboard'),
+    registro: document.getElementById('vistaRegistro'),
+    lobby: document.getElementById('vistaLobby'),
+    resultado: document.getElementById('vistaResultado')
+};
 
-const modalCrear = document.getElementById('modalCrearPosada');
 let usuarioActual = null;
 let salaActualId = null;
 let miNombreEnSala = null;
 let unsuscribeLobby = null;
-let unsuscribeDashboard = null; // Para el dashboard en tiempo real
-let timerInterval = null; // Para la cuenta regresiva
+let unsuscribeDashboard = null;
+let timerInterval = null;
 
 // --- NAVEGACIÓN ---
-function mostrarVista(vista) {
-    allVistas.forEach(v => v.style.display = 'none');
-    vista.style.display = 'block';
+function irA(vistaNombre) {
+    Object.values(vistas).forEach(v => v.style.display = 'none');
+    vistas[vistaNombre].style.display = 'block';
+
+    // Lógica del botón ATRÁS
+    const btnAtras = document.getElementById('btnAtras');
+    if (vistaNombre === 'home') {
+        btnAtras.style.display = 'none';
+        limpiarSala();
+    } else {
+        btnAtras.style.display = 'flex';
+    }
 }
 
-// --- AUTH & DASHBOARD ---
+function limpiarSala() {
+    salaActualId = null;
+    miNombreEnSala = null;
+    if(unsuscribeLobby) unsuscribeLobby();
+    if(timerInterval) clearInterval(timerInterval);
+}
 
+// --- BOTÓN ATRÁS (LÓGICA INTELIGENTE) ---
+document.getElementById('btnAtras').addEventListener('click', () => {
+    // Si estoy en lobby o registro, vuelvo al Home (o Admin si soy admin)
+    if (vistas.lobby.style.display === 'block' || vistas.registro.style.display === 'block' || vistas.resultado.style.display === 'block') {
+        if(usuarioActual && document.getElementById('panelAdminControls').style.display === 'block') {
+             // Si soy admin viendo una sala, vuelvo al dashboard
+             irA('admin');
+             activarDashboard();
+        } else {
+            // Si soy usuario normal o admin en otra vista, vuelvo al home
+             irA('home');
+             if(usuarioActual) irA('admin'); // Preferencia: Si está logueado, al dashboard
+        }
+    } else if (vistas.admin.style.display === 'block') {
+        // Si estoy en dashboard admin, ir atrás es ir al home (o salir?)
+        // Dejémoslo que vaya al home simple.
+        irA('home');
+    }
+    limpiarSala();
+});
+
+
+// --- AUTH ---
 onAuthStateChanged(auth, (user) => {
     if (user) {
         usuarioActual = user;
-        document.getElementById('adminNombre').innerText = user.displayName;
-        document.getElementById('btnLogout').style.display = 'inline-block';
+        document.getElementById('adminNombre').innerText = user.displayName.split(' ')[0]; // Solo primer nombre
+        document.getElementById('btnLogout').style.display = 'block';
     } else {
         usuarioActual = null;
         document.getElementById('btnLogout').style.display = 'none';
-        if(unsuscribeDashboard) unsuscribeDashboard(); // Dejar de escuchar si salgo
-        mostrarVista(vHome);
+        if(unsuscribeDashboard) unsuscribeDashboard();
+        irA('home');
     }
 });
 
 document.getElementById('btnSoyAdmin').addEventListener('click', async () => {
     if (usuarioActual) {
-        mostrarVista(vAdmin);
-        activarDashboardRealTime(); // Activar escucha en vivo
+        activarDashboard();
+        irA('admin');
     } else {
         try {
             await signInWithPopup(auth, provider);
-            mostrarVista(vAdmin);
-            activarDashboardRealTime(); // Activar escucha en vivo tras login
-            mostrarNotificacion("¡Bienvenido Organizador! ", "success");
-        } catch (error) {
-            if(error.code !== 'auth/popup-closed-by-user') {
-                mostrarNotificacion("Error al iniciar sesión.", "error");
-            }
+            activarDashboard();
+            irA('admin');
+        } catch (e) {
+            if(e.code !== 'auth/popup-closed-by-user') notificar("Error de acceso", "error");
         }
     }
 });
 
 document.getElementById('btnLogout').addEventListener('click', () => {
     signOut(auth);
-    if(unsuscribeDashboard) unsuscribeDashboard();
-    mostrarNotificacion("Sesión cerrada", "info");
+    irA('home');
 });
 
-// DASHBOARD EN TIEMPO REAL (UPDATE INSTANTÁNEO)
-function activarDashboardRealTime() {
+// --- DASHBOARD ADMIN ---
+function activarDashboard() {
     if(!usuarioActual) return;
     const lista = document.getElementById('listaMisPosadas');
+    lista.innerHTML = `<div style="text-align:center; padding:20px; color:#94a3b8;">Cargando...</div>`;
     
-    // Spinner inicial
-    lista.innerHTML = `<div style="text-align:center; padding:20px;">⏳<p style="color:#94a3b8;">Cargando...</p></div>`;
-
-    if(unsuscribeDashboard) unsuscribeDashboard(); // Limpiar anterior
+    if(unsuscribeDashboard) unsuscribeDashboard();
 
     const q = query(collection(db, "posadas"), where("creadorEmail", "==", usuarioActual.email));
     
     unsuscribeDashboard = onSnapshot(q, (snapshot) => {
         lista.innerHTML = '';
-        
         if(snapshot.empty) {
-            lista.innerHTML = `
-                <div style="text-align:center; padding: 30px 10px; border: 2px dashed #334155; border-radius: 12px; opacity: 0.7;">
-                    <div style="font-size: 2.5rem; margin-bottom: 10px;">📭</div>
-                    <p style="color:#e2e8f0; margin: 0; font-weight:bold;">Nada por aquí</p>
-                    <p style="color:#94a3b8; font-size: 0.85rem; margin-top:5px;">Crea tu primera posada arriba.</p>
-                </div>`;
+            lista.innerHTML = `<div style="text-align:center; padding:20px; color:#94a3b8;">No tienes eventos activos</div>`;
             return;
         }
 
         snapshot.forEach((docSnap) => {
             const data = docSnap.data();
             const div = document.createElement('div');
-            div.style.cssText = "background: #1e293b; padding: 15px; border-radius: 12px; margin-bottom: 10px; border: 1px solid #334155; display: flex; justify-content: space-between; align-items: center;";
+            div.style.cssText = "display:flex; justify-content:space-between; align-items:center; padding:15px; background:var(--bg-dark); border-radius:12px; margin-bottom:10px; border:1px solid var(--border);";
             
-            // Estado visual
-            const estadoBadge = data.estado === 'cerrada' 
-                ? '<span style="color:#10b981; font-size:0.7rem; border:1px solid #10b981; padding:2px 4px; border-radius:4px;">REALIZADA</span>' 
-                : '<span style="color:#facc15; font-size:0.7rem;">ABIERTA</span>';
+            const estado = data.estado === 'cerrada' ? 'Finalizado' : 'Activo';
+            const colorEstado = data.estado === 'cerrada' ? '#10b981' : '#fbbf24';
 
             div.innerHTML = `
                 <div>
-                    <div style="color:#fff; font-weight:bold; font-size: 1rem;">${data.nombre} ${estadoBadge}</div>
-                    <div style="color:#94a3b8; font-size:0.75rem; margin-top:4px;">
-                        CÓDIGO: <span style="color:#facc15; font-weight:bold;">${data.codigo}</span>
+                    <div style="font-weight:600; font-size:0.95rem;">${data.nombre}</div>
+                    <div style="font-size:0.8rem; color:var(--text-muted); margin-top:2px;">
+                        ${data.codigo} • <span style="color:${colorEstado}">${estado}</span>
                     </div>
                 </div>
-                <button class="btn-secondary" style="width:auto; padding:8px 16px; font-size:0.8rem; height: fit-content;">Ver</button>
+                <button class="btn-secondary" style="width:auto; padding:8px 16px; font-size:0.8rem;">Ver</button>
             `;
-            div.querySelector('button').onclick = () => entrarAlLobby(docSnap.id, data, true);
+            div.querySelector('button').onclick = () => entrarLobby(docSnap.id, data, true);
             lista.appendChild(div);
         });
     });
 }
 
-// --- CREAR POSADA (CON FECHA) ---
+// --- CREAR SALA ---
+const modalCrear = document.getElementById('modalCrearPosada');
 document.getElementById('btnAbrirModal').addEventListener('click', () => {
-    document.getElementById('newNombre').value = ""; 
-    document.getElementById('newFecha').value = ""; 
-    modalCrear.style.display = 'flex'; 
+    document.getElementById('newNombre').value = "";
+    document.getElementById('newFecha').value = "";
+    modalCrear.style.display = 'flex';
 });
 
-document.getElementById('btnCancelarModal').addEventListener('click', () => {
-    modalCrear.style.display = 'none';
-});
+document.getElementById('btnCancelarModal').addEventListener('click', () => modalCrear.style.display = 'none');
 
 document.getElementById('btnConfirmarCrear').addEventListener('click', async () => {
     const nombre = document.getElementById('newNombre').value;
     const fecha = document.getElementById('newFecha').value;
     const max = document.getElementById('newMax').value;
-    
-    if(!nombre || !max || !fecha) return mostrarNotificacion("Llena todos los datos, incluida la fecha", "error");
+
+    if(!nombre || !fecha || !max) return notificar("Completa todos los campos", "error");
 
     const btn = document.getElementById('btnConfirmarCrear');
-    btn.disabled = true; 
-    btn.innerText = "...";
+    btn.disabled = true; btn.innerText = "...";
 
     try {
         const codigo = Math.random().toString(36).substring(2, 6).toUpperCase();
         await addDoc(collection(db, "posadas"), {
-            nombre: nombre,
-            fechaTarget: fecha, // Guardamos la fecha
-            maxParticipantes: parseInt(max),
-            codigo: codigo,
-            creadorEmail: usuarioActual.email,
-            estado: 'abierta',
-            participantes: [],
-            resultados: {}
+            nombre, fechaTarget: fecha, maxParticipantes: parseInt(max),
+            codigo, creadorEmail: usuarioActual.email, estado: 'abierta',
+            participantes: [], resultados: {}
         });
-        
         modalCrear.style.display = 'none';
-        mostrarNotificacion(`¡Sala creada!`, "success");
-        // No necesitamos llamar a cargarMisPosadas() manual, el onSnapshot lo hará solo.
-        
+        notificar("Evento creado correctamente", "success");
     } catch (e) {
-        mostrarNotificacion("Error al crear. Intenta de nuevo.", "error");
+        notificar("Error al crear", "error");
     } finally {
-        btn.disabled = false;
-        btn.innerText = "Crear Sala";
+        btn.disabled = false; btn.innerText = "Crear";
     }
 });
 
-
-// --- UNIRSE A SALA ---
-
+// --- UNIRSE (INVITADO) ---
 document.getElementById('btnIrASala').addEventListener('click', async () => {
     const codigo = document.getElementById('inputCodigoHome').value.trim().toUpperCase();
-    if(codigo.length < 3) return mostrarNotificacion("Código inválido", "error");
+    if(codigo.length < 3) return notificar("Código inválido", "error");
 
     try {
         const q = query(collection(db, "posadas"), where("codigo", "==", codigo));
         const snap = await getDocs(q);
 
-        if(snap.empty) return mostrarNotificacion("Ese código no existe", "error");
+        if(snap.empty) return notificar("No encontramos ese evento", "error");
 
         const docSnap = snap.docs[0];
         const data = docSnap.data();
 
-        // VALIDACIÓN DE CAPACIDAD (SEGURIDAD)
-        if(data.participantes.length >= data.maxParticipantes) {
-            mostrarNotificacion("🚫 Sala llena. Ya no caben más.", "error");
-            return;
-        }
+        if(data.participantes.length >= data.maxParticipantes) return notificar("El evento está lleno", "error");
+        if(data.estado === 'cerrada') return notificar("Este evento ya finalizó", "error");
 
-        if(data.estado === 'cerrada') {
-            mostrarNotificacion("🔒 El sorteo ya se realizó.", "error");
-        } else {
-            salaActualId = docSnap.id;
-            document.getElementById('lblNombreSala').innerText = data.nombre;
-            mostrarVista(vRegistro);
-        }
+        salaActualId = docSnap.id;
+        document.getElementById('lblNombreSala').innerText = data.nombre;
+        irA('registro');
+
     } catch (e) {
-        mostrarNotificacion("Error de conexión", "error");
+        notificar("Error de conexión", "error");
     }
 });
 
@@ -269,144 +264,97 @@ document.getElementById('formRegistro').addEventListener('submit', async (e) => 
     try {
         const salaRef = doc(db, "posadas", salaActualId);
         
-        // DOBLE CHECK DE SEGURIDAD ANTES DE ENTRAR
-        const checkSnap = await getDoc(salaRef);
-        const checkData = checkSnap.data();
-        
-        if(checkData.participantes.length >= checkData.maxParticipantes) {
-            mostrarNotificacion("⛔ Mala suerte, se llenó justo ahora.", "error");
-            mostrarVista(vHome);
-            return;
+        // Verificación final de cupo
+        const check = await getDoc(salaRef);
+        if(check.data().participantes.length >= check.data().maxParticipantes) {
+            irA('home');
+            return notificar("Se acaba de llenar", "error");
         }
 
-        // SI HAY LUGAR, ENTRAR
-        await updateDoc(salaRef, {
-            participantes: arrayUnion({ nombre, deseo })
-        });
-        
-        entrarAlLobby(salaActualId, checkData, false);
+        await updateDoc(salaRef, { participantes: arrayUnion({ nombre, deseo }) });
+        entrarLobby(salaActualId, check.data(), false);
 
     } catch (e) {
-        mostrarNotificacion("Error al registrarte", "error");
+        notificar("No pudimos registrarte", "error");
     }
 });
 
-document.getElementById('btnVolverHome').addEventListener('click', () => {
-    if(unsuscribeDashboard) unsuscribeDashboard();
-    mostrarVista(vHome);
-});
-
-
-// --- LOBBY Y LOGICA PRINCIPAL ---
-
-function entrarAlLobby(id, data, soyAdmin) {
+// --- LOBBY LOGICA ---
+function entrarLobby(id, data, soyAdmin) {
     salaActualId = id;
-    mostrarVista(vLobby);
-    
+    irA('lobby');
+
     document.getElementById('lobbyNombreSala').innerText = data.nombre;
     document.getElementById('lobbyCodigo').innerText = `CÓDIGO: ${data.codigo}`;
     
     const panelAdmin = document.getElementById('panelAdminControls');
     const msgEspera = document.getElementById('msgEspera');
-    const btnPreSorteo = document.getElementById('btnPreSorteo');
-    const resultList = document.getElementById('adminResultadosList');
+    const btnSorteo = document.getElementById('btnPreSorteo');
 
-    // Configurar interfaz Admin/Invitado
     if(soyAdmin) {
         panelAdmin.style.display = 'block';
         msgEspera.style.display = 'none';
-        
-        // Lógica de Estado Cerrado/Abierto
-        if(data.estado === 'cerrada') {
-            btnPreSorteo.style.display = 'none'; // Ya no se puede sortear
-            resultList.style.display = 'block'; // Mostrar resultados
-            renderResultadosAdmin(data.resultados);
-        } else {
-            btnPreSorteo.style.display = 'block';
-            resultList.style.display = 'none';
-            document.getElementById('listaParejasAdmin').innerHTML = '';
-        }
-
+        btnSorteo.style.display = data.estado === 'cerrada' ? 'none' : 'block';
+        document.getElementById('adminResultadosList').style.display = data.estado === 'cerrada' ? 'block' : 'none';
+        if(data.estado === 'cerrada') renderResultados(data.resultados);
     } else {
         panelAdmin.style.display = 'none';
         msgEspera.style.display = 'block';
     }
 
-    // INICIAR CUENTA REGRESIVA
-    iniciarCuentaRegresiva(data.fechaTarget);
+    iniciarTimer(data.fechaTarget);
 
-    // ESCUCHAR CAMBIOS (REAL-TIME)
     if(unsuscribeLobby) unsuscribeLobby();
-    
     unsuscribeLobby = onSnapshot(doc(db, "posadas", id), (docSnap) => {
         if(!docSnap.exists()) return;
         const info = docSnap.data();
 
         document.getElementById('lobbyContador').innerText = `${info.participantes.length}/${info.maxParticipantes}`;
-
-        const listaDiv = document.getElementById('listaParticipantes');
-        listaDiv.innerHTML = '';
+        
+        const list = document.getElementById('listaParticipantes');
+        list.innerHTML = '';
         info.participantes.forEach(p => {
-            const pDiv = document.createElement('div');
-            pDiv.innerHTML = `<span style="color:#94a3b8;">🎅</span> <span style="color:#e2e8f0;">${p.nombre}</span>`;
-            pDiv.style.padding = "6px 0";
-            pDiv.style.borderBottom = "1px solid #1e293b";
-            listaDiv.appendChild(pDiv);
+            list.innerHTML += `<div>${p.nombre}</div>`;
         });
 
-        // SI YA SE CERRÓ
         if(info.estado === 'cerrada' && info.resultados) {
             if(soyAdmin) {
-                btnPreSorteo.style.display = 'none'; // Bloquear botón
-                resultList.style.display = 'block';
-                renderResultadosAdmin(info.resultados);
-            } else if (miNombreEnSala) {
-                // Si soy invitado, mostrar mi resultado
-                const destino = info.resultados[miNombreEnSala];
-                if(destino) mostrarResultadoIndividual(destino);
+                btnSorteo.style.display = 'none';
+                document.getElementById('adminResultadosList').style.display = 'block';
+                renderResultados(info.resultados);
+            } else if(miNombreEnSala && info.resultados[miNombreEnSala]) {
+                mostrarResultado(info.resultados[miNombreEnSala]);
             }
         }
     });
 }
 
-// --- TIMER CUENTA REGRESIVA ---
-function iniciarCuentaRegresiva(fechaTarget) {
+function iniciarTimer(fecha) {
     if(timerInterval) clearInterval(timerInterval);
     const display = document.getElementById('timerDisplay');
-    
-    if(!fechaTarget) {
-        display.innerText = "Sin fecha";
-        return;
-    }
-
-    const targetDate = new Date(fechaTarget).getTime();
+    const target = new Date(fecha).getTime();
 
     timerInterval = setInterval(() => {
         const now = new Date().getTime();
-        const distance = targetDate - now;
+        const dist = target - now;
 
-        if (distance < 0) {
+        if (dist < 0) {
             clearInterval(timerInterval);
-            display.innerText = "¡ES HOY! 🎄";
-            display.style.color = "#facc15";
+            display.innerText = "¡Es hoy!";
+            display.style.color = "#fbbf24";
             return;
         }
-
-        const days = Math.floor(distance / (1000 * 60 * 60 * 24));
-        const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-        const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
-
-        display.innerText = `${days}d ${hours}h ${minutes}m`;
+        
+        const d = Math.floor(dist / (1000 * 60 * 60 * 24));
+        const h = Math.floor((dist % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        const m = Math.floor((dist % (1000 * 60 * 60)) / (1000 * 60));
+        display.innerText = `${d}d ${h}h ${m}m`;
     }, 1000);
 }
 
-// --- SORTEO (LÓGICA SEGURA) ---
+// --- SORTEO ---
 document.getElementById('btnPreSorteo').addEventListener('click', () => {
-    // Usamos nuestro MODAL BONITO en lugar de confirm()
-    confirmarAccion(
-        "¿Cerrar sala y sortear ahora? (No se podrá deshacer)", 
-        realizarSorteo // Si dice que sí, ejecutamos esto
-    );
+    confirmar("¿Realizar el sorteo ahora?", realizarSorteo);
 });
 
 async function realizarSorteo() {
@@ -415,54 +363,34 @@ async function realizarSorteo() {
         const snap = await getDoc(salaRef);
         const parts = snap.data().participantes;
 
-        if(parts.length < 2) return mostrarNotificacion("Mínimo 2 personas requeridas", "error");
+        if(parts.length < 2) return notificar("Se necesitan más participantes", "error");
 
+        let givers = [...parts].sort(() => Math.random() - 0.5);
         let asignaciones = {};
-        let givers = [...parts];
-        let receivers = [...parts];
         
-        // Algoritmo simple de derangement (evitar que te toques a ti mismo)
-        // Para simplificar y evitar loops infinitos en JS simple:
-        givers.sort(() => Math.random() - 0.5);
-        
-        for(let i=0; i < givers.length; i++) {
-            const quienDa = givers[i];
-            const quienRecibe = givers[(i + 1) % givers.length]; // Cadena circular
-            asignaciones[quienDa.nombre] = quienRecibe;
+        for(let i=0; i<givers.length; i++) {
+            asignaciones[givers[i].nombre] = givers[(i+1) % givers.length];
         }
 
-        await updateDoc(salaRef, { 
-            estado: 'cerrada',  // BLOQUEA LA SALA
-            resultados: asignaciones 
-        });
-        
-        mostrarNotificacion("¡Sorteo realizado con éxito! 🎁", "success");
+        await updateDoc(salaRef, { estado: 'cerrada', resultados: asignaciones });
+        notificar("Sorteo completado", "success");
 
     } catch (e) {
-        console.error(e);
-        mostrarNotificacion("Error en el sorteo", "error");
+        notificar("Error al sortear", "error");
     }
 }
 
-function renderResultadosAdmin(resultados) {
+function renderResultados(res) {
     const div = document.getElementById('listaParejasAdmin');
     div.innerHTML = '';
-    
-    // Convertir objeto a array para mostrar
-    Object.keys(resultados).forEach(origen => {
-        const destino = resultados[origen];
-        const p = document.createElement('div');
-        p.style.padding = "4px 0";
-        p.style.borderBottom = "1px solid #334155";
-        p.innerHTML = `<strong style="color:#94a3b8;">${origen}</strong> ➔ <span style="color:#facc15;">${destino.nombre}</span>`;
-        div.appendChild(p);
+    Object.keys(res).forEach(k => {
+        div.innerHTML += `<div style="font-size:0.85rem; border-bottom:1px solid #334155; padding:4px;">${k} → <span style="color:#fbbf24">${res[k].nombre}</span></div>`;
     });
 }
 
-function mostrarResultadoIndividual(destino) {
-    if(unsuscribeLobby) unsuscribeLobby();
-    if(timerInterval) clearInterval(timerInterval); // Detener timer
-    mostrarVista(vResultado);
+function mostrarResultado(destino) {
+    limpiarSala(); // Detener listeners
+    irA('resultado');
     document.getElementById('resNombreDestino').innerText = destino.nombre;
     document.getElementById('resDeseoDestino').innerText = destino.deseo;
 }
