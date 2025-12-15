@@ -1,20 +1,20 @@
 :root {
   /* Paleta "Navidad Cálida" (Suave a la vista) */
-  --bg-app: #F2EFE9;       /* Crema suave mate (como papel antiguo) */
+  --bg-app: #F2EFE9;       /* Crema suave mate */
   --bg-card: #FDFBF7;      /* Blanco hueso cálido */
   --bg-input: #EBE7E0;     /* Beige grisáceo para inputs */
   
-  --accent: #C5A059;       /* Dorado antiguo mate (no brilla tanto) */
+  --accent: #C5A059;       /* Dorado antiguo mate */
   --accent-hover: #A68545;
-  --festive-red: #B94A48;  /* Rojo arcilla suave (no chillante) */
+  --festive-red: #B94A48;  /* Rojo arcilla suave */
   
-  --text-primary: #3F3D3B; /* Gris carbón suave (mejor que negro puro) */
+  --text-primary: #3F3D3B; /* Gris carbón suave */
   --text-secondary: #8C8A85; /* Gris piedra */
   
-  --border-color: #DQD8D0; /* Bordes muy sutiles */
+  --border-color: #D1D5DB; /* CORREGIDO: Gris válido */
   
   --success: #5D8A66;      /* Verde pino suave */
-  --danger: #B94A48;       /* Rojo suave para errores/borrar */
+  --danger: #B94A48;       /* Rojo suave para errores */
   
   --radius-lg: 20px;
   --radius-md: 12px;
@@ -33,7 +33,7 @@ body {
 
 .card {
   background: var(--bg-card); border-radius: var(--radius-lg); padding: 32px 28px;
-  box-shadow: 0 4px 20px rgba(63, 61, 59, 0.05); /* Sombra muy suave */
+  box-shadow: 0 4px 20px rgba(63, 61, 59, 0.05);
   border: 1px solid #EAE5DD; position: relative;
 }
 
