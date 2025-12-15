@@ -4,155 +4,148 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Intercambio</title>
-  
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
-  
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
 
-  <div class="card">
-    <div class="header-nav">
-        <button id="btnAtras" class="btn-icon" style="display: none;">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <line x1="19" y1="12" x2="5" y2="12"></line>
-                <polyline points="12 19 5 12 12 5"></polyline>
-            </svg>
-        </button>
-        
-        <h1 id="tituloPrincipal">Intercambio</h1>
-        
-        <button id="btnLogout" class="btn-text" style="display: none;">Salir</button>
-    </div>
-
-    <div id="vistaHome" class="fade-in">
-      <p class="subtitle">Organiza tu evento de forma sencilla</p>
-      
-      <div class="field">
-        <label>Código de sala</label>
-        <input type="text" id="inputCodigoHome" placeholder="A1B2" class="input-code">
-      </div>
-      <button id="btnIrASala" class="btn-primary">Unirme</button>
-
-      <div class="divider">o</div>
-
-      <button id="btnSoyAdmin" class="btn-secondary">Crear Evento</button>
-    </div>
-
-    <div id="vistaAdminDashboard" style="display: none;" class="fade-in">
-      <div class="welcome-box">
-          <p class="subtitle">Hola, <span id="adminNombre">Admin</span></p>
-      </div>
-      
-      <button id="btnAbrirModal" class="btn-primary">+ Nuevo Evento</button>
-      
-      <label class="section-label">Tus eventos</label>
-      <div id="listaMisPosadas" class="scroll-box">
-        </div>
-    </div>
-
-    <div id="vistaRegistro" style="display: none;" class="fade-in">
-      <p class="subtitle">Ingresando a <strong id="lblNombreSala" class="highlight-text">...</strong></p>
-      <form id="formRegistro">
-        <div class="field">
-          <label>Tu nombre</label>
-          <input type="text" id="regNombre" required autocomplete="off" placeholder="Nombre completo">
-        </div>
-        <div class="field">
-          <label>Sugerencia de regalo</label>
-          <input type="text" id="regDeseo" required placeholder="Ej. Libro, Taza, Ropa..." autocomplete="off">
-        </div>
-        <button type="submit" class="btn-primary">Entrar</button>
-      </form>
-    </div>
-
-    <div id="vistaLobby" style="display: none;" class="fade-in">
-      <div class="info-card">
-         <div class="info-header">
-            <div>
-                <div class="info-title" id="lobbyNombreSala">Evento</div>
-                <div class="info-code" id="lobbyCodigo">CÓDIGO: ----</div>
-            </div>
-            <div class="info-count">
-                <span>Participantes</span>
-                <strong id="lobbyContador">0/0</strong>
-            </div>
-         </div>
-         
-         <div id="countdownBox" class="countdown">
-             <small>Tiempo restante</small>
-             <div id="timerDisplay">--d --h --m</div>
-         </div>
-      </div>
-
-      <div class="list-container">
-          <label class="section-label">Participantes</label>
-          <div id="listaParticipantes" class="scroll-box-simple"></div>
-      </div>
-
-      <div id="panelAdminControls" style="display: none;">
-          <div class="admin-divider">Administración</div>
+  <div class="main-container">
+    <div class="card">
+      <div class="header-nav">
+          <button id="btnAtras" class="btn-icon" style="display: none;">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+          </button>
           
-          <button id="btnPreSorteo" class="btn-accent">Realizar Sorteo</button>
+          <h1 id="tituloPrincipal">Intercambio</h1>
           
-          <div id="adminResultadosList" style="display:none;" class="results-list">
-              <p class="results-title">Resultados Generados</p>
-              <div id="listaParejasAdmin"></div>
+          <button id="btnLogout" class="btn-text" style="display: none;">Salir</button>
+      </div>
+
+      <div id="vistaHome" class="view-section fade-in">
+        <p class="subtitle">Organiza tu evento de forma sencilla</p>
+        
+        <div class="field">
+          <label>Código de sala</label>
+          <input type="text" id="inputCodigoHome" placeholder="Ej: A1B2" class="input-code">
+        </div>
+        <button id="btnIrASala" class="btn-primary">Unirme</button>
+
+        <div class="divider">o</div>
+
+        <div id="seccionInvitado">
+            <button id="btnSoyAdmin" class="btn-secondary">Iniciar Sesión / Crear</button>
+        </div>
+
+        <div id="seccionAdmin" style="display: none;">
+            <button id="btnAbrirModal" class="btn-primary label-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+                Crear Nuevo Evento
+            </button>
+
+            <div class="my-events-container mt-large">
+                <label class="section-label">Mis Eventos</label>
+                <div id="listaMisPosadas" class="scroll-box standard-list">
+                    </div>
+            </div>
+        </div>
+      </div>
+
+      <div id="vistaRegistro" style="display: none;" class="view-section fade-in">
+        <p class="subtitle">Entrando a <strong id="lblNombreSala" class="highlight">...</strong></p>
+        <form id="formRegistro">
+          <div class="field">
+            <label>Tu nombre</label>
+            <input type="text" id="regNombre" required autocomplete="off" placeholder="Nombre completo">
+          </div>
+          <div class="field">
+            <label>Sugerencia de regalo</label>
+            <input type="text" id="regDeseo" required placeholder="Ej. Libro, Taza..." autocomplete="off">
+          </div>
+          <button type="submit" class="btn-primary">Confirmar Entrada</button>
+        </form>
+      </div>
+
+      <div id="vistaLobby" style="display: none;" class="view-section fade-in">
+        <div class="lobby-header-card">
+           <div class="lobby-info">
+               <h2 id="lobbyNombreSala">Evento</h2>
+               <p id="lobbyCodigo" class="code-badge">CÓDIGO: ----</p>
+           </div>
+           <div class="lobby-stats">
+               <span id="lobbyContador" class="stat-number">0/0</span>
+               <span class="stat-label">Participantes</span>
+           </div>
+        </div>
+        
+        <div id="countdownBox" class="countdown-timer">
+            <small>Tiempo restante</small>
+            <div id="timerDisplay">--d --h --m</div>
+        </div>
+
+        <div class="list-section mt-large">
+            <label class="section-label">En la sala</label>
+            <div id="listaParticipantes" class="scroll-box compact-list"></div>
+        </div>
+
+        <div id="panelAdminControls" style="display: none;" class="admin-panel mt-large">
+            <div class="admin-label">Administración</div>
+            <button id="btnPreSorteo" class="btn-accent">Realizar Sorteo</button>
+            <div id="adminResultadosList" style="display:none;" class="results-container">
+                <p class="section-label">Resultados</p>
+                <div id="listaParejasAdmin" class="compact-list"></div>
+            </div>
+        </div>
+
+        <p id="msgEspera" class="status-message">Esperando al organizador...</p>
+      </div>
+
+      <div id="vistaResultado" style="display: none;" class="view-section fade-in centered-content">
+          <h2 class="result-title">Tu Resultado</h2>
+          <p class="subtitle">Debes regalar a</p>
+          <div class="result-reveal-card">
+              <h1 id="resNombreDestino">...</h1>
+              <div class="gift-divider">🎁</div>
+              <p class="wish-label">Sugerencia:</p>
+              <p id="resDeseoDestino" class="wish-text">...</p>
           </div>
       </div>
 
-      <p id="msgEspera" class="footer-note">Esperando al organizador...</p>
     </div>
-
-    <div id="vistaResultado" style="display: none;" class="fade-in centered-view">
-        <h2 class="highlight-title">Tu Resultado</h2>
-        <p class="subtitle">Debes regalar a</p>
-        
-        <div class="result-card">
-            <h1 id="resNombreDestino">...</h1>
-            <div class="result-divider"></div>
-            <p class="wish-label">Sugerencia:</p>
-            <p id="resDeseoDestino" class="wish-text">...</p>
-        </div>
-    </div>
-
   </div>
 
   <div id="modalCrearPosada" class="modal-overlay">
-    <div class="modal-card">
-        <h3>Nuevo Evento</h3>
-        
+    <div class="modal-box">
+        <h3 class="modal-title">Nuevo Evento</h3>
         <div class="field">
             <label>Nombre</label>
-            <input type="text" id="newNombre" placeholder="Nombre del evento" autocomplete="off">
+            <input type="text" id="newNombre" placeholder="Ej. Cena Navideña" autocomplete="off">
         </div>
-        
         <div class="field">
             <label>Fecha y Hora</label>
-            <input type="datetime-local" id="newFecha">
+            <div class="date-input-wrapper">
+                <input type="datetime-local" id="newFecha">
+            </div>
         </div>
-
         <div class="field">
-            <label>Capacidad máxima</label>
+            <label>Capacidad</label>
             <input type="number" id="newMax" value="10" min="2">
         </div>
-
-        <div class="modal-actions">
-            <button id="btnCancelarModal" class="btn-text-simple">Cancelar</button>
-            <button id="btnConfirmarCrear" class="btn-primary-small">Crear</button>
+        <div class="modal-actions footer-actions">
+            <button id="btnCancelarModal" class="btn-ghost">Cancelar</button>
+            <button id="btnConfirmarCrear" class="btn-primary">Crear</button>
         </div>
     </div>
   </div>
 
   <div id="modalConfirmacion" class="modal-overlay" style="z-index: 10000;">
-      <div class="modal-card">
-          <h3>Confirmación</h3>
-          <p id="txtConfirmacion" class="confirm-text">...</p>
-          <div class="modal-actions">
-              <button id="btnNoConfirm" class="btn-text-simple">Cancelar</button>
-              <button id="btnSiConfirm" class="btn-primary-small">Confirmar</button>
+      <div class="modal-box confirm-box">
+          <h3 class="modal-title">Confirmar</h3>
+          <p id="txtConfirmacion" class="confirm-message">...</p>
+          <div class="modal-actions footer-actions">
+              <button id="btnNoConfirm" class="btn-ghost">Cancelar</button>
+              <button id="btnSiConfirm" class="btn-primary">Confirmar</button>
           </div>
       </div>
   </div>

@@ -35,9 +35,18 @@ function notificar(msg, tipo = 'info') {
     toast.className = `toast ${tipo}`;
     toast.innerText = msg;
     container.appendChild(toast);
+    
+    toast.animate([
+        { opacity: 0, transform: 'translateY(-20px)' },
+        { opacity: 1, transform: 'translateY(0)' }
+    ], { duration: 300, easing: 'cubic-bezier(0.16, 1, 0.3, 1)' });
+
     setTimeout(() => {
-        toast.style.opacity = '0';
-        setTimeout(() => toast.remove(), 300);
+        const anim = toast.animate([
+            { opacity: 1, transform: 'translateY(0)' },
+            { opacity: 0, transform: 'translateY(-20px)' }
+        ], { duration: 300, easing: 'cubic-bezier(0.16, 1, 0.3, 1)' });
+        anim.onfinish = () => toast.remove();
     }, 3000);
 }
 
@@ -46,7 +55,6 @@ function confirmar(mensaje, accionSi) {
     document.getElementById('txtConfirmacion').innerText = mensaje;
     modal.style.display = 'flex';
 
-    // Clonar para limpiar eventos previos
     const btnSi = document.getElementById('btnSiConfirm');
     const btnNo = document.getElementById('btnNoConfirm');
     const nuevoSi = btnSi.cloneNode(true);
@@ -59,10 +67,9 @@ function confirmar(mensaje, accionSi) {
     nuevoNo.addEventListener('click', () => { modal.style.display = 'none'; });
 }
 
-// --- VARIABLES DE ESTADO ---
+// --- VARIABLES ---
 const vistas = {
     home: document.getElementById('vistaHome'),
-    admin: document.getElementById('vistaAdminDashboard'),
     registro: document.getElementById('vistaRegistro'),
     lobby: document.getElementById('vistaLobby'),
     resultado: document.getElementById('vistaResultado')
@@ -80,13 +87,18 @@ function irA(vistaNombre) {
     Object.values(vistas).forEach(v => v.style.display = 'none');
     vistas[vistaNombre].style.display = 'block';
 
-    // Lógica del botón ATRÁS
     const btnAtras = document.getElementById('btnAtras');
+    const titulo = document.getElementById('tituloPrincipal');
+
     if (vistaNombre === 'home') {
         btnAtras.style.display = 'none';
+        titulo.innerText = "Intercambio";
         limpiarSala();
     } else {
         btnAtras.style.display = 'flex';
+        if(vistaNombre === 'registro') titulo.innerText = "Registro";
+        if(vistaNombre === 'lobby') titulo.innerText = "Sala de Espera";
+        if(vistaNombre === 'resultado') titulo.innerText = "Resultado";
     }
 }
 
@@ -97,67 +109,58 @@ function limpiarSala() {
     if(timerInterval) clearInterval(timerInterval);
 }
 
-// --- BOTÓN ATRÁS (LÓGICA INTELIGENTE) ---
 document.getElementById('btnAtras').addEventListener('click', () => {
-    // Si estoy en lobby o registro, vuelvo al Home (o Admin si soy admin)
-    if (vistas.lobby.style.display === 'block' || vistas.registro.style.display === 'block' || vistas.resultado.style.display === 'block') {
-        if(usuarioActual && document.getElementById('panelAdminControls').style.display === 'block') {
-             // Si soy admin viendo una sala, vuelvo al dashboard
-             irA('admin');
-             activarDashboard();
-        } else {
-            // Si soy usuario normal o admin en otra vista, vuelvo al home
-             irA('home');
-             if(usuarioActual) irA('admin'); // Preferencia: Si está logueado, al dashboard
-        }
-    } else if (vistas.admin.style.display === 'block') {
-        // Si estoy en dashboard admin, ir atrás es ir al home (o salir?)
-        // Dejémoslo que vaya al home simple.
-        irA('home');
-    }
+    // Siempre regresa al home unificado
+    irA('home');
     limpiarSala();
 });
 
-
-// --- AUTH ---
+// --- AUTH & HOME UNIFICADO ---
 onAuthStateChanged(auth, (user) => {
+    const secInvitado = document.getElementById('seccionInvitado');
+    const secAdmin = document.getElementById('seccionAdmin');
+    const btnLogout = document.getElementById('btnLogout');
+
     if (user) {
         usuarioActual = user;
-        document.getElementById('adminNombre').innerText = user.displayName.split(' ')[0]; // Solo primer nombre
-        document.getElementById('btnLogout').style.display = 'block';
+        // MODO ADMIN: Oculta botón login, muestra panel y eventos
+        secInvitado.style.display = 'none';
+        secAdmin.style.display = 'block';
+        btnLogout.style.display = 'block';
+        
+        activarDashboard(); // Carga los eventos ahí mismo
     } else {
         usuarioActual = null;
-        document.getElementById('btnLogout').style.display = 'none';
+        // MODO INVITADO: Muestra botón login, oculta panel
+        secInvitado.style.display = 'block';
+        secAdmin.style.display = 'none';
+        btnLogout.style.display = 'none';
+        
         if(unsuscribeDashboard) unsuscribeDashboard();
-        irA('home');
     }
 });
 
 document.getElementById('btnSoyAdmin').addEventListener('click', async () => {
-    if (usuarioActual) {
-        activarDashboard();
-        irA('admin');
-    } else {
-        try {
-            await signInWithPopup(auth, provider);
-            activarDashboard();
-            irA('admin');
-        } catch (e) {
-            if(e.code !== 'auth/popup-closed-by-user') notificar("Error de acceso", "error");
-        }
+    try {
+        await signInWithPopup(auth, provider);
+        // El onAuthStateChanged se encarga del resto
+    } catch (e) {
+        if(e.code !== 'auth/popup-closed-by-user') notificar("No se pudo iniciar sesión", "error");
     }
 });
 
 document.getElementById('btnLogout').addEventListener('click', () => {
-    signOut(auth);
-    irA('home');
+    confirmar("¿Quieres cerrar sesión?", () => {
+        signOut(auth);
+        // Regresa al estado inicial automáticamente
+    });
 });
 
-// --- DASHBOARD ADMIN ---
+// --- DASHBOARD (MIS EVENTOS) ---
 function activarDashboard() {
     if(!usuarioActual) return;
     const lista = document.getElementById('listaMisPosadas');
-    lista.innerHTML = `<div style="text-align:center; padding:20px; color:#94a3b8;">Cargando...</div>`;
+    lista.innerHTML = `<div style="text-align:center; padding:30px; color:var(--text-secondary);">Cargando eventos...</div>`;
     
     if(unsuscribeDashboard) unsuscribeDashboard();
 
@@ -166,26 +169,24 @@ function activarDashboard() {
     unsuscribeDashboard = onSnapshot(q, (snapshot) => {
         lista.innerHTML = '';
         if(snapshot.empty) {
-            lista.innerHTML = `<div style="text-align:center; padding:20px; color:#94a3b8;">No tienes eventos activos</div>`;
+            lista.innerHTML = `<div style="text-align:center; padding:30px 20px; color:var(--text-secondary); border:2px dashed var(--border-color); border-radius:var(--radius-md); font-size:0.9rem;">No tienes eventos activos.<br>¡Crea el primero arriba!</div>`;
             return;
         }
 
         snapshot.forEach((docSnap) => {
             const data = docSnap.data();
             const div = document.createElement('div');
-            div.style.cssText = "display:flex; justify-content:space-between; align-items:center; padding:15px; background:var(--bg-dark); border-radius:12px; margin-bottom:10px; border:1px solid var(--border);";
-            
-            const estado = data.estado === 'cerrada' ? 'Finalizado' : 'Activo';
-            const colorEstado = data.estado === 'cerrada' ? '#10b981' : '#fbbf24';
+            const estadoClass = data.estado === 'cerrada' ? 'color:var(--success)' : 'color:var(--accent)';
+            const estadoTexto = data.estado === 'cerrada' ? 'Finalizado' : 'Activo';
 
             div.innerHTML = `
                 <div>
-                    <div style="font-weight:600; font-size:0.95rem;">${data.nombre}</div>
-                    <div style="font-size:0.8rem; color:var(--text-muted); margin-top:2px;">
-                        ${data.codigo} • <span style="color:${colorEstado}">${estado}</span>
+                    <div style="font-weight:600; font-size:1rem;">${data.nombre}</div>
+                    <div style="font-size:0.85rem; color:var(--text-secondary); margin-top:4px; font-weight:500;">
+                        <span style="letter-spacing:1px; font-weight:600;">${data.codigo}</span> • <span style="${estadoClass}">${estadoTexto}</span>
                     </div>
                 </div>
-                <button class="btn-secondary" style="width:auto; padding:8px 16px; font-size:0.8rem;">Ver</button>
+                <button class="btn-secondary" style="width:auto; padding:8px 14px; font-size:0.85rem;">Ver</button>
             `;
             div.querySelector('button').onclick = () => entrarLobby(docSnap.id, data, true);
             lista.appendChild(div);
@@ -193,7 +194,7 @@ function activarDashboard() {
     });
 }
 
-// --- CREAR SALA ---
+// --- CREAR SALA (Modal directo) ---
 const modalCrear = document.getElementById('modalCrearPosada');
 document.getElementById('btnAbrirModal').addEventListener('click', () => {
     document.getElementById('newNombre').value = "";
@@ -211,7 +212,7 @@ document.getElementById('btnConfirmarCrear').addEventListener('click', async () 
     if(!nombre || !fecha || !max) return notificar("Completa todos los campos", "error");
 
     const btn = document.getElementById('btnConfirmarCrear');
-    btn.disabled = true; btn.innerText = "...";
+    btn.disabled = true; btn.innerText = "Creando...";
 
     try {
         const codigo = Math.random().toString(36).substring(2, 6).toUpperCase();
@@ -221,7 +222,7 @@ document.getElementById('btnConfirmarCrear').addEventListener('click', async () 
             participantes: [], resultados: {}
         });
         modalCrear.style.display = 'none';
-        notificar("Evento creado correctamente", "success");
+        notificar("¡Evento creado!", "success");
     } catch (e) {
         notificar("Error al crear", "error");
     } finally {
@@ -232,19 +233,19 @@ document.getElementById('btnConfirmarCrear').addEventListener('click', async () 
 // --- UNIRSE (INVITADO) ---
 document.getElementById('btnIrASala').addEventListener('click', async () => {
     const codigo = document.getElementById('inputCodigoHome').value.trim().toUpperCase();
-    if(codigo.length < 3) return notificar("Código inválido", "error");
+    if(codigo.length < 3) return notificar("Verifica el código", "error");
 
     try {
         const q = query(collection(db, "posadas"), where("codigo", "==", codigo));
         const snap = await getDocs(q);
 
-        if(snap.empty) return notificar("No encontramos ese evento", "error");
+        if(snap.empty) return notificar("Código no encontrado", "error");
 
         const docSnap = snap.docs[0];
         const data = docSnap.data();
 
-        if(data.participantes.length >= data.maxParticipantes) return notificar("El evento está lleno", "error");
-        if(data.estado === 'cerrada') return notificar("Este evento ya finalizó", "error");
+        if(data.participantes.length >= data.maxParticipantes) return notificar("Evento lleno", "error");
+        if(data.estado === 'cerrada') return notificar("Sorteo ya realizado", "error");
 
         salaActualId = docSnap.id;
         document.getElementById('lblNombreSala').innerText = data.nombre;
@@ -263,19 +264,17 @@ document.getElementById('formRegistro').addEventListener('submit', async (e) => 
 
     try {
         const salaRef = doc(db, "posadas", salaActualId);
-        
-        // Verificación final de cupo
         const check = await getDoc(salaRef);
         if(check.data().participantes.length >= check.data().maxParticipantes) {
             irA('home');
-            return notificar("Se acaba de llenar", "error");
+            return notificar("Evento lleno", "error");
         }
 
         await updateDoc(salaRef, { participantes: arrayUnion({ nombre, deseo }) });
         entrarLobby(salaActualId, check.data(), false);
 
     } catch (e) {
-        notificar("No pudimos registrarte", "error");
+        notificar("Error al registrarte", "error");
     }
 });
 
@@ -314,7 +313,7 @@ function entrarLobby(id, data, soyAdmin) {
         const list = document.getElementById('listaParticipantes');
         list.innerHTML = '';
         info.participantes.forEach(p => {
-            list.innerHTML += `<div>${p.nombre}</div>`;
+            list.innerHTML += `<div>🎅 ${p.nombre}</div>`;
         });
 
         if(info.estado === 'cerrada' && info.resultados) {
@@ -340,8 +339,8 @@ function iniciarTimer(fecha) {
 
         if (dist < 0) {
             clearInterval(timerInterval);
-            display.innerText = "¡Es hoy!";
-            display.style.color = "#fbbf24";
+            display.innerText = "¡Es hoy! 🎉";
+            display.style.color = "var(--accent)";
             return;
         }
         
@@ -354,7 +353,7 @@ function iniciarTimer(fecha) {
 
 // --- SORTEO ---
 document.getElementById('btnPreSorteo').addEventListener('click', () => {
-    confirmar("¿Realizar el sorteo ahora?", realizarSorteo);
+    confirmar("¿Cerrar evento y sortear?", realizarSorteo);
 });
 
 async function realizarSorteo() {
@@ -363,7 +362,7 @@ async function realizarSorteo() {
         const snap = await getDoc(salaRef);
         const parts = snap.data().participantes;
 
-        if(parts.length < 2) return notificar("Se necesitan más participantes", "error");
+        if(parts.length < 2) return notificar("Faltan participantes", "error");
 
         let givers = [...parts].sort(() => Math.random() - 0.5);
         let asignaciones = {};
@@ -373,7 +372,7 @@ async function realizarSorteo() {
         }
 
         await updateDoc(salaRef, { estado: 'cerrada', resultados: asignaciones });
-        notificar("Sorteo completado", "success");
+        notificar("Sorteo realizado", "success");
 
     } catch (e) {
         notificar("Error al sortear", "error");
@@ -384,12 +383,12 @@ function renderResultados(res) {
     const div = document.getElementById('listaParejasAdmin');
     div.innerHTML = '';
     Object.keys(res).forEach(k => {
-        div.innerHTML += `<div style="font-size:0.85rem; border-bottom:1px solid #334155; padding:4px;">${k} → <span style="color:#fbbf24">${res[k].nombre}</span></div>`;
+        div.innerHTML += `<div><span style="color:var(--text-secondary)">${k}</span> → <span style="color:var(--accent); font-weight:600;">${res[k].nombre}</span></div>`;
     });
 }
 
 function mostrarResultado(destino) {
-    limpiarSala(); // Detener listeners
+    limpiarSala();
     irA('resultado');
     document.getElementById('resNombreDestino').innerText = destino.nombre;
     document.getElementById('resDeseoDestino').innerText = destino.deseo;
