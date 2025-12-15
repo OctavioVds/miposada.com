@@ -7,6 +7,7 @@ import {
     getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged 
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
+// --- CONFIGURACIÓN FIREBASE ---
 const firebaseConfig = {
   apiKey: "AIzaSyCwFd_oNfHkUi25GYME0NxuX70cHZT6k6w",
   authDomain: "miposada-98daf.firebaseapp.com",
@@ -16,7 +17,7 @@ const firebaseConfig = {
   appId: "1:367576712970:web:51f77ff6ea7b8d83de1cf3"
 };
 
-// --- EMAILJS ---
+// --- CONFIGURACIÓN EMAILJS ---
 const EMAIL_SERVICE_ID = "service_ao73611"; 
 const EMAIL_TEMPLATE_ID = "template_dp7jafi"; 
 const EMAIL_PUBLIC_KEY = "l-_4LrQW8pN7F7MiK"; 
@@ -42,7 +43,11 @@ function notificar(msg) {
     toast.innerText = msg;
     container.appendChild(toast);
     
-    setTimeout(() => toast.remove(), 3000);
+    // Animación simple de entrada/salida
+    toast.animate([{ opacity:0, transform:'translateY(-10px)' }, { opacity:1, transform:'translateY(0)' }], { duration: 300 });
+    setTimeout(() => {
+        toast.animate([{ opacity:1 }, { opacity:0 }], { duration: 300 }).onfinish = () => toast.remove();
+    }, 3000);
 }
 
 function confirmar(mensaje, accionSi) {
@@ -50,7 +55,6 @@ function confirmar(mensaje, accionSi) {
     document.getElementById('txtConfirmacion').innerText = mensaje;
     modal.style.display = 'flex';
 
-    // Clona los botones para eliminar listeners viejos
     const btnSi = document.getElementById('btnSiConfirm');
     const btnNo = document.getElementById('btnNoConfirm');
     const nuevoSi = btnSi.cloneNode(true);
@@ -85,14 +89,14 @@ function verificarHistorial() {
             const nombre = localStorage.getItem(key);
             
             const btn = document.createElement('div');
-            btn.className = 'quick-join-card'; // Clase bonita
+            btn.className = 'quick-join-card';
             btn.onclick = () => reunirseRapido(codigo, nombre);
             btn.innerHTML = `
                 <div>
-                    <div style="font-weight:700; color:var(--accent)">${codigo}</div>
-                    <div style="font-size:0.85rem; color:#6B7280">Continuar como <strong>${nombre}</strong></div>
+                    <div style="font-weight:700; color:var(--accent); font-size:1.1rem;">${codigo}</div>
+                    <div style="font-size:0.85rem; color:#666">Como: <strong>${nombre}</strong></div>
                 </div>
-                <div style="color:var(--accent)">➔</div>
+                <div style="color:var(--accent); font-weight:bold;">➜</div>
             `;
             lista.appendChild(btn);
         }
@@ -124,7 +128,6 @@ function irA(vista) {
     Object.values(vistas).forEach(v => v.style.display = 'none');
     vistas[vista].style.display = 'block';
     
-    // Header
     const btnAtras = document.getElementById('btnAtras');
     const titulo = document.getElementById('tituloPrincipal');
     
@@ -142,7 +145,7 @@ function irA(vista) {
 
 document.getElementById('btnAtras').addEventListener('click', () => {
     irA('home');
-    if(unsuscribeLobby) unsuscribeLobby(); // Dejar de escuchar cambios
+    if(unsuscribeLobby) unsuscribeLobby();
 });
 
 // --- AUTH ---
@@ -173,11 +176,11 @@ document.getElementById('btnLogout').addEventListener('click', () => {
     confirmar("¿Quieres cerrar sesión?", () => signOut(auth));
 });
 
-// --- DASHBOARD (GENERACIÓN DE TARJETAS LIMPIAS) ---
+// --- DASHBOARD ---
 function activarDashboard() {
     if(!usuarioActual) return;
     const lista = document.getElementById('listaMisPosadas');
-    lista.innerHTML = `<div style="text-align:center; padding:20px; color:#9CA3AF">Cargando eventos...</div>`;
+    lista.innerHTML = `<div style="text-align:center; padding:20px; color:#999">Cargando...</div>`;
     
     if(unsuscribeDashboard) unsuscribeDashboard();
     const q = query(collection(db, "posadas"), where("creadorEmail", "==", usuarioActual.email));
@@ -185,18 +188,18 @@ function activarDashboard() {
     unsuscribeDashboard = onSnapshot(q, (snapshot) => {
         lista.innerHTML = '';
         if(snapshot.empty) {
-            lista.innerHTML = `<div style="text-align:center; padding:30px; color:#9CA3AF; border:2px dashed #E5E7EB; border-radius:16px;">No tienes eventos activos.</div>`;
+            lista.innerHTML = `<div style="text-align:center; padding:30px; color:#999; border:2px dashed #EEE; border-radius:16px;">Sin eventos creados.</div>`;
             return;
         }
 
         snapshot.forEach((docSnap) => {
             const data = docSnap.data();
             const div = document.createElement('div');
-            div.className = 'clean-card'; // Clase CSS limpia
+            div.className = 'clean-card';
             
             const esFinalizado = data.estado === 'cerrada';
             const dotClass = esFinalizado ? 'status-finished' : 'status-dot';
-            const estadoTexto = esFinalizado ? 'Finalizado' : 'Activo';
+            const estadoTxt = esFinalizado ? 'Finalizado' : 'Activo';
 
             div.innerHTML = `
                 <div>
@@ -205,15 +208,15 @@ function activarDashboard() {
                         <span class="${dotClass}"></span>
                         <span style="font-weight:600; letter-spacing:1px;">${data.codigo}</span>
                         <span>•</span>
-                        <span>${estadoTexto}</span>
+                        <span>${estadoTxt}</span>
                     </div>
                 </div>
                 <div class="action-row">
                     <button class="icon-btn" onclick="irEvento('${docSnap.id}')" title="Ver">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
                     </button>
                     <button class="icon-btn delete" onclick="eliminarEventoExterno('${docSnap.id}')" title="Eliminar">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
                     </button>
                 </div>
             `;
@@ -222,7 +225,6 @@ function activarDashboard() {
     });
 }
 
-// Funciones globales
 window.irEvento = (id) => {
     getDoc(doc(db, "posadas", id)).then(snap => {
         if(snap.exists()) entrarLobby(id, snap.data(), true);
@@ -230,8 +232,8 @@ window.irEvento = (id) => {
 };
 
 window.eliminarEventoExterno = (id) => {
-    confirmar("¿Eliminar este evento?", async () => {
-        try { await deleteDoc(doc(db, "posadas", id)); notificar("Eliminado"); } 
+    confirmar("¿Eliminar evento permanentemente?", async () => {
+        try { await deleteDoc(doc(db, "posadas", id)); notificar("Evento eliminado"); } 
         catch (e) { notificar("Error al eliminar"); }
     });
 };
@@ -283,9 +285,10 @@ async function intentarUnirse(codigo, nombreAutenticado) {
         const snap = await getDocs(q);
 
         if(snap.empty) {
-            notificar("El código no existe");
-            localStorage.removeItem(`evento_${codigo}`); // Limpiar basura
+            notificar("El evento ya no existe");
+            localStorage.removeItem(`evento_${codigo}`);
             verificarHistorial();
+            document.getElementById('inputCodigoHome').value = "";
             return;
         }
 
@@ -314,7 +317,6 @@ document.getElementById('formRegistro').addEventListener('submit', async (e) => 
         const snap = await getDoc(salaRef);
         const data = snap.data();
 
-        // Validar si ya existe
         if (data.participantes.some(p => p.nombre.toLowerCase() === nombre.toLowerCase())) {
             notificar("¡Bienvenido de nuevo!");
             guardarSesionLocal(data.codigo, nombre);
@@ -326,13 +328,10 @@ document.getElementById('formRegistro').addEventListener('submit', async (e) => 
         if(data.estado === 'cerrada') return notificar("El sorteo ya cerró");
         if(data.participantes.length >= data.maxParticipantes) return notificar("Sala llena");
 
-        // Registrar
         await updateDoc(salaRef, { participantes: arrayUnion({ nombre, email, deseo }) });
-        
         guardarSesionLocal(data.codigo, nombre);
         miNombreEnSala = nombre;
 
-        // Auto-sorteo
         const snapFinal = await getDoc(salaRef);
         const dataFinal = snapFinal.data();
         if(dataFinal.participantes.length === dataFinal.maxParticipantes && dataFinal.estado === 'abierta') {
@@ -356,12 +355,10 @@ function entrarLobby(id, data, soyAdmin) {
     const panel = document.getElementById('panelAdminControls');
     const msg = document.getElementById('msgEspera');
     
-    // Panel de admin
     if(soyAdmin) {
         panel.style.display = 'block';
         msg.style.display = 'none';
         
-        // Controlar visibilidad de botones según estado
         const btnSorteo = document.getElementById('btnPreSorteo');
         const resultadosList = document.getElementById('adminResultadosList');
         
@@ -378,26 +375,21 @@ function entrarLobby(id, data, soyAdmin) {
         msg.style.display = 'block';
     }
 
-    // Timer
     iniciarTimer(data.fechaTarget);
 
-    // Listener en tiempo real
     if(unsuscribeLobby) unsuscribeLobby();
     unsuscribeLobby = onSnapshot(doc(db, "posadas", id), (docSnap) => {
         if(!docSnap.exists()) return;
         const info = docSnap.data();
         
-        // Actualizar contador
         document.getElementById('lobbyContador').innerText = `${info.participantes.length}/${info.maxParticipantes}`;
         
-        // Actualizar lista visual
         const lista = document.getElementById('listaParticipantes');
         lista.innerHTML = '';
         info.participantes.forEach(p => {
-            lista.innerHTML += `<div class="clean-card" style="padding:10px 16px;">🎅 ${p.nombre}</div>`;
+            lista.innerHTML += `<div class="clean-card" style="padding:10px 16px; margin-bottom:8px;">🎅 ${p.nombre}</div>`;
         });
 
-        // Verificar si ya hubo sorteo
         if(info.estado === 'cerrada' && info.resultados) {
             if(soyAdmin) {
                 document.getElementById('btnPreSorteo').style.display = 'none';
@@ -410,11 +402,10 @@ function entrarLobby(id, data, soyAdmin) {
     });
 }
 
-// Timer sencillo
 function iniciarTimer(fecha) {
     if(timerInterval) clearInterval(timerInterval);
-    const target = new Date(fecha).getTime();
     const display = document.getElementById('timerDisplay');
+    const target = new Date(fecha).getTime();
 
     timerInterval = setInterval(() => {
         const now = new Date().getTime();
@@ -430,7 +421,6 @@ function iniciarTimer(fecha) {
     }, 1000);
 }
 
-// Lógica de Sorteo
 document.getElementById('btnPreSorteo').addEventListener('click', () => {
     confirmar("¿Forzar sorteo ahora?", () => realizarSorteo(false));
 });
@@ -446,7 +436,6 @@ async function realizarSorteo(esAutomatico) {
             return;
         }
 
-        // Algoritmo de sorteo (Fisher-Yates shuffle simplificado)
         let givers = [...parts].sort(() => Math.random() - 0.5);
         let asignaciones = {};
         
@@ -455,7 +444,6 @@ async function realizarSorteo(esAutomatico) {
             const receiver = givers[(i+1) % givers.length];
             asignaciones[giver.nombre] = receiver;
 
-            // Enviar correo
             if(window.emailjs) {
                 emailjs.send(EMAIL_SERVICE_ID, EMAIL_TEMPLATE_ID, {
                     to_name: giver.nombre,
@@ -467,7 +455,7 @@ async function realizarSorteo(esAutomatico) {
         }
 
         await updateDoc(docRef, { estado: 'cerrada', resultados: asignaciones });
-        if(!esAutomatico) notificar("Sorteo realizado con éxito");
+        if(!esAutomatico) notificar("Sorteo realizado");
 
     } catch (e) { notificar("Error en el sorteo"); }
 }
@@ -477,9 +465,9 @@ function renderResultados(resultados) {
     div.innerHTML = '';
     Object.keys(resultados).forEach(giver => {
         div.innerHTML += `
-            <div class="clean-card" style="padding:10px; font-size:0.9rem;">
+            <div class="clean-card" style="padding:10px; font-size:0.9rem; margin-bottom:8px;">
                 <span>${giver}</span>
-                <span style="color:var(--accent)">➔</span>
+                <span style="color:var(--accent); font-weight:bold;">➜</span>
                 <strong>${resultados[giver].nombre}</strong>
             </div>
         `;
@@ -492,7 +480,6 @@ function mostrarResultado(destino) {
     document.getElementById('resDeseoDestino').innerText = destino.deseo;
 }
 
-// Eliminar evento (Botón rojo)
 document.getElementById('btnEliminarEventoFinal').addEventListener('click', () => {
     confirmar("¿Eliminar evento permanentemente?", async () => {
         await deleteDoc(doc(db, "posadas", salaActualId));
