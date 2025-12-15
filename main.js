@@ -147,7 +147,7 @@ document.getElementById('btnLogout').addEventListener('click', () => {
     confirmar("¿Cerrar sesión?", () => { signOut(auth); });
 });
 
-// --- DASHBOARD (MIS EVENTOS + BORRAR) ---
+// --- DASHBOARD (MIS EVENTOS + BORRAR SIEMPRE) ---
 function activarDashboard() {
     if(!usuarioActual) return;
     const lista = document.getElementById('listaMisPosadas');
@@ -169,13 +169,6 @@ function activarDashboard() {
             const div = document.createElement('div');
             const esFinalizado = data.estado === 'cerrada';
             
-            // Botón de eliminar (Icono de basura) visible si está finalizado
-            const botonBorrar = esFinalizado 
-                ? `<button class="btn-trash" title="Eliminar Evento" onclick="eliminarEventoExterno('${docSnap.id}')">
-                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
-                   </button>` 
-                : '';
-
             const estadoStyle = esFinalizado ? 'color:var(--success)' : 'color:var(--accent)';
             const estadoTxt = esFinalizado ? 'Finalizado' : 'Activo';
 
@@ -188,7 +181,9 @@ function activarDashboard() {
                 </div>
                 <div style="display:flex; align-items:center;">
                     <button class="btn-secondary" style="padding:8px 14px; font-size:0.8rem;" onclick="irEvento('${docSnap.id}')">Ver</button>
-                    ${botonBorrar}
+                    <button class="btn-trash" title="Eliminar Evento" onclick="eliminarEventoExterno('${docSnap.id}')">
+                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+                   </button>
                 </div>
             `;
             lista.appendChild(div);
@@ -196,10 +191,8 @@ function activarDashboard() {
     });
 }
 
-// Funciones globales para el HTML onclick
+// Funciones globales
 window.irEvento = (id) => {
-    // Necesitamos buscar la data del evento de nuevo o pasarla. 
-    // Para simplificar, buscamos el doc.
     const docRef = doc(db, "posadas", id);
     getDoc(docRef).then(snap => {
         if(snap.exists()) entrarLobby(id, snap.data(), true);
@@ -207,7 +200,7 @@ window.irEvento = (id) => {
 };
 
 window.eliminarEventoExterno = (id) => {
-    confirmar("¿Eliminar este evento de tu lista? No se puede deshacer.", async () => {
+    confirmar("¿Estás seguro de eliminar este evento? No se puede recuperar.", async () => {
         try {
             await deleteDoc(doc(db, "posadas", id));
             notificar("Evento eliminado", "success");
@@ -282,9 +275,6 @@ document.getElementById('btnIrASala').addEventListener('click', async () => {
 
         if(data.participantes.length >= data.maxParticipantes) return notificar("Sala llena", "error");
         
-        // Si ya finalizó, permitir entrada SOLO si ya estaba registrado (para ver resultado)
-        // Pero como no sabemos el nombre aun, pasamos al registro
-        
         salaActualId = docSnap.id;
         document.getElementById('lblNombreSala').innerText = data.nombre;
         irA('registro');
@@ -298,7 +288,7 @@ document.getElementById('btnIrASala').addEventListener('click', async () => {
 document.getElementById('formRegistro').addEventListener('submit', async (e) => {
     e.preventDefault();
     const nombre = document.getElementById('regNombre').value.trim();
-    const email = document.getElementById('regEmail').value.trim(); // NUEVO
+    const email = document.getElementById('regEmail').value.trim();
     const deseo = document.getElementById('regDeseo').value.trim();
     miNombreEnSala = nombre;
 
@@ -307,29 +297,25 @@ document.getElementById('formRegistro').addEventListener('submit', async (e) => 
         const check = await getDoc(salaRef);
         const data = check.data();
 
-        // 1. REVISAR SI YA EXISTE (PARA RECUPERAR RESULTADO)
+        // REVISAR SI YA EXISTE
         const existe = data.participantes.find(p => p.nombre.toLowerCase() === nombre.toLowerCase());
         
         if (existe) {
-            // Si ya existe, lo dejamos pasar directo al lobby
             entrarLobby(salaActualId, data, false);
             notificar("¡Bienvenido de nuevo!", "success");
             return;
         }
 
-        // 2. SI NO EXISTE Y ESTÁ CERRADA -> ERROR
         if(data.estado === 'cerrada') {
             irA('home');
             return notificar("El sorteo ya pasó y no estabas registrado", "error");
         }
 
-        // 3. SI NO EXISTE Y ESTÁ LLENA -> ERROR
         if(data.participantes.length >= data.maxParticipantes) {
             irA('home');
             return notificar("Se llenó la sala", "error");
         }
 
-        // 4. REGISTRAR NUEVO
         await updateDoc(salaRef, { 
             participantes: arrayUnion({ nombre, email, deseo }) 
         });
@@ -358,16 +344,15 @@ function entrarLobby(id, data, soyAdmin) {
     if(soyAdmin) {
         panelAdmin.style.display = 'block';
         msgEspera.style.display = 'none';
-        
+        btnEliminar.style.display = 'block'; // SIEMPRE VISIBLE PARA ADMIN
+
         if(data.estado === 'cerrada') {
             btnSorteo.style.display = 'none';
             document.getElementById('adminResultadosList').style.display = 'block';
             renderResultados(data.resultados);
-            btnEliminar.style.display = 'block'; // Mostrar botón eliminar
         } else {
             btnSorteo.style.display = 'block';
             document.getElementById('adminResultadosList').style.display = 'none';
-            btnEliminar.style.display = 'none';
         }
     } else {
         panelAdmin.style.display = 'none';
@@ -394,7 +379,6 @@ function entrarLobby(id, data, soyAdmin) {
                 btnSorteo.style.display = 'none';
                 document.getElementById('adminResultadosList').style.display = 'block';
                 renderResultados(info.resultados);
-                btnEliminar.style.display = 'block';
             } else if(miNombreEnSala && info.resultados[miNombreEnSala]) {
                 mostrarResultado(info.resultados[miNombreEnSala]);
             }
@@ -427,7 +411,7 @@ function iniciarTimer(fecha) {
 
 // --- SORTEO ---
 document.getElementById('btnPreSorteo').addEventListener('click', () => {
-    confirmar("¿Realizar sorteo? (Se enviarán las notificaciones)", realizarSorteo);
+    confirmar("¿Realizar sorteo? (Se cerrará el evento)", realizarSorteo);
 });
 
 async function realizarSorteo() {
@@ -443,12 +427,10 @@ async function realizarSorteo() {
         
         for(let i=0; i<givers.length; i++) {
             asignaciones[givers[i].nombre] = givers[(i+1) % givers.length];
-            // AQUÍ ES DONDE SE ENVIARÍA EL CORREO REAL CON EMAILJS
-            // console.log(`Enviando correo a ${givers[i].email}...`);
         }
 
         await updateDoc(salaRef, { estado: 'cerrada', resultados: asignaciones });
-        notificar("Sorteo exitoso. Resultados guardados.", "success");
+        notificar("Sorteo exitoso.", "success");
 
     } catch (e) {
         notificar("Error al sortear", "error");
