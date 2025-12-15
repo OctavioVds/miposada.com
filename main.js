@@ -22,13 +22,20 @@ const EMAIL_SERVICE_ID = "service_ao73611";
 const EMAIL_TEMPLATE_ID = "template_dp7jafi"; 
 const EMAIL_PUBLIC_KEY = "l-_4LrQW8pN7F7MiK"; 
 
-if(window.emailjs) window.emailjs.init(EMAIL_PUBLIC_KEY);
+// Inicializar EmailJS con protección (para que no rompa la app si falla)
+try {
+    if(window.emailjs) window.emailjs.init(EMAIL_PUBLIC_KEY);
+} catch (error) {
+    console.warn("Advertencia: EmailJS no pudo iniciarse (Bloqueador de anuncios detectado?)", error);
+}
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
 const provider = new GoogleAuthProvider();
 provider.setCustomParameters({ prompt: 'select_account' });
+
+console.log("App iniciada correctamente 🚀"); // Mensaje para verificar que el JS cargó
 
 // --- UI HELPERS ---
 function notificar(msg) {
@@ -43,10 +50,11 @@ function notificar(msg) {
     toast.innerText = msg;
     container.appendChild(toast);
     
-    // Animación simple de entrada/salida
+    // Animación
     toast.animate([{ opacity:0, transform:'translateY(-10px)' }, { opacity:1, transform:'translateY(0)' }], { duration: 300 });
     setTimeout(() => {
-        toast.animate([{ opacity:1 }, { opacity:0 }], { duration: 300 }).onfinish = () => toast.remove();
+        const anim = toast.animate([{ opacity:1 }, { opacity:0 }], { duration: 300 });
+        anim.onfinish = () => toast.remove();
     }, 3000);
 }
 
@@ -71,6 +79,10 @@ function confirmar(mensaje, accionSi) {
 function guardarSesionLocal(codigo, nombre) {
     localStorage.setItem(`evento_${codigo}`, nombre);
     verificarHistorial();
+}
+
+function obtenerSesionLocal(codigo) {
+    return localStorage.getItem(`evento_${codigo}`);
 }
 
 function verificarHistorial() {
@@ -105,7 +117,8 @@ function verificarHistorial() {
 }
 
 window.reunirseRapido = async (codigo, nombre) => {
-    document.getElementById('inputCodigoHome').value = codigo;
+    const input = document.getElementById('inputCodigoHome');
+    if(input) input.value = codigo;
     await intentarUnirse(codigo, nombre); 
 };
 
@@ -125,25 +138,27 @@ const vistas = {
 };
 
 function irA(vista) {
-    Object.values(vistas).forEach(v => v.style.display = 'none');
-    vistas[vista].style.display = 'block';
+    Object.values(vistas).forEach(v => { if(v) v.style.display = 'none'; });
+    if(vistas[vista]) vistas[vista].style.display = 'block';
     
     const btnAtras = document.getElementById('btnAtras');
     const titulo = document.getElementById('tituloPrincipal');
     
     if (vista === 'home') {
-        btnAtras.style.display = 'none';
-        titulo.innerText = "Intercambio";
+        if(btnAtras) btnAtras.style.display = 'none';
+        if(titulo) titulo.innerText = "Intercambio";
         verificarHistorial();
     } else {
-        btnAtras.style.display = 'block';
-        if(vista === 'registro') titulo.innerText = "Registro";
-        if(vista === 'lobby') titulo.innerText = "Sala de Espera";
-        if(vista === 'resultado') titulo.innerText = "¡Sorpresa!";
+        if(btnAtras) btnAtras.style.display = 'block';
+        if(titulo) {
+            if(vista === 'registro') titulo.innerText = "Registro";
+            if(vista === 'lobby') titulo.innerText = "Sala de Espera";
+            if(vista === 'resultado') titulo.innerText = "¡Sorpresa!";
+        }
     }
 }
 
-document.getElementById('btnAtras').addEventListener('click', () => {
+document.getElementById('btnAtras')?.addEventListener('click', () => {
     irA('home');
     if(unsuscribeLobby) unsuscribeLobby();
 });
@@ -156,23 +171,23 @@ onAuthStateChanged(auth, (user) => {
 
     if (user) {
         usuarioActual = user;
-        secInvitado.style.display = 'none';
-        secAdmin.style.display = 'block';
-        btnLogout.style.display = 'block';
+        if(secInvitado) secInvitado.style.display = 'none';
+        if(secAdmin) secAdmin.style.display = 'block';
+        if(btnLogout) btnLogout.style.display = 'block';
         activarDashboard();
     } else {
         usuarioActual = null;
-        secInvitado.style.display = 'block';
-        secAdmin.style.display = 'none';
-        btnLogout.style.display = 'none';
+        if(secInvitado) secInvitado.style.display = 'block';
+        if(secAdmin) secAdmin.style.display = 'none';
+        if(btnLogout) btnLogout.style.display = 'none';
     }
 });
 
-document.getElementById('btnSoyAdmin').addEventListener('click', async () => {
-    try { await signInWithPopup(auth, provider); } catch (e) {}
+document.getElementById('btnSoyAdmin')?.addEventListener('click', async () => {
+    try { await signInWithPopup(auth, provider); } catch (e) { console.error(e); }
 });
 
-document.getElementById('btnLogout').addEventListener('click', () => {
+document.getElementById('btnLogout')?.addEventListener('click', () => {
     confirmar("¿Quieres cerrar sesión?", () => signOut(auth));
 });
 
@@ -180,6 +195,8 @@ document.getElementById('btnLogout').addEventListener('click', () => {
 function activarDashboard() {
     if(!usuarioActual) return;
     const lista = document.getElementById('listaMisPosadas');
+    if(!lista) return;
+
     lista.innerHTML = `<div style="text-align:center; padding:20px; color:#999">Cargando...</div>`;
     
     if(unsuscribeDashboard) unsuscribeDashboard();
@@ -238,15 +255,24 @@ window.eliminarEventoExterno = (id) => {
     });
 };
 
+document.getElementById('btnEliminarEventoFinal')?.addEventListener('click', () => {
+    confirmar("¿Borrar este evento?", async () => {
+        try { await deleteDoc(doc(db, "posadas", salaActualId)); notificar("Eliminado", "success"); irA('home'); } 
+        catch(e) { notificar("Error", "error"); }
+    });
+});
+
 // --- CREAR SALA ---
 const modalCrear = document.getElementById('modalCrearPosada');
-document.getElementById('btnAbrirModal').addEventListener('click', () => {
+document.getElementById('btnAbrirModal')?.addEventListener('click', () => {
     document.getElementById('newNombre').value = ""; document.getElementById('newFecha').value = "";
-    modalCrear.style.display = 'flex';
+    if(modalCrear) modalCrear.style.display = 'flex';
 });
-document.getElementById('btnCancelarModal').addEventListener('click', () => modalCrear.style.display = 'none');
+document.getElementById('btnCancelarModal')?.addEventListener('click', () => {
+    if(modalCrear) modalCrear.style.display = 'none';
+});
 
-document.getElementById('btnConfirmarCrear').addEventListener('click', async () => {
+document.getElementById('btnConfirmarCrear')?.addEventListener('click', async () => {
     const nombre = document.getElementById('newNombre').value;
     const fecha = document.getElementById('newFecha').value;
     const max = document.getElementById('newMax').value;
@@ -263,15 +289,20 @@ document.getElementById('btnConfirmarCrear').addEventListener('click', async () 
             codigo, creadorEmail: usuarioActual.email, estado: 'abierta',
             participantes: [], resultados: {}
         });
-        modalCrear.style.display = 'none';
+        if(modalCrear) modalCrear.style.display = 'none';
         notificar("¡Evento creado!");
     } catch (e) { notificar("Error al crear"); } 
     finally { btn.innerText = "Crear"; btn.disabled = false; }
 });
 
-// --- LÓGICA DE UNIRSE ---
-document.getElementById('btnIrASala').addEventListener('click', () => {
-    const codigo = document.getElementById('inputCodigoHome').value.trim().toUpperCase();
+// --- LÓGICA DE UNIRSE (AQUÍ ESTABA EL PROBLEMA, REVISADO) ---
+document.getElementById('btnIrASala')?.addEventListener('click', () => {
+    const codigoInput = document.getElementById('inputCodigoHome');
+    if(!codigoInput) return; // Seguridad extra
+    
+    const codigo = codigoInput.value.trim().toUpperCase();
+    console.log("Botón Unirse clickeado. Código:", codigo); // DEBUG
+
     if(codigo.length < 3) return notificar("Código muy corto");
     
     const nombreGuardado = obtenerSesionLocal(codigo);
@@ -281,11 +312,13 @@ document.getElementById('btnIrASala').addEventListener('click', () => {
 
 async function intentarUnirse(codigo, nombreAutenticado) {
     try {
+        console.log("Buscando evento en Firebase..."); // DEBUG
         const q = query(collection(db, "posadas"), where("codigo", "==", codigo));
         const snap = await getDocs(q);
 
         if(snap.empty) {
-            notificar("El evento ya no existe");
+            console.log("Evento no encontrado"); // DEBUG
+            notificar("El evento no existe");
             localStorage.removeItem(`evento_${codigo}`);
             verificarHistorial();
             document.getElementById('inputCodigoHome').value = "";
@@ -303,10 +336,13 @@ async function intentarUnirse(codigo, nombreAutenticado) {
         } else {
             irA('registro');
         }
-    } catch (e) { notificar("Error de conexión"); }
+    } catch (e) { 
+        console.error(e);
+        notificar("Error de conexión"); 
+    }
 }
 
-document.getElementById('formRegistro').addEventListener('submit', async (e) => {
+document.getElementById('formRegistro')?.addEventListener('submit', async (e) => {
     e.preventDefault();
     const nombre = document.getElementById('regNombre').value.trim();
     const email = document.getElementById('regEmail').value.trim();
@@ -421,7 +457,7 @@ function iniciarTimer(fecha) {
     }, 1000);
 }
 
-document.getElementById('btnPreSorteo').addEventListener('click', () => {
+document.getElementById('btnPreSorteo')?.addEventListener('click', () => {
     confirmar("¿Forzar sorteo ahora?", () => realizarSorteo(false));
 });
 
@@ -462,16 +498,18 @@ async function realizarSorteo(esAutomatico) {
 
 function renderResultados(resultados) {
     const div = document.getElementById('listaParejasAdmin');
-    div.innerHTML = '';
-    Object.keys(resultados).forEach(giver => {
-        div.innerHTML += `
-            <div class="clean-card" style="padding:10px; font-size:0.9rem; margin-bottom:8px;">
-                <span>${giver}</span>
-                <span style="color:var(--accent); font-weight:bold;">➜</span>
-                <strong>${resultados[giver].nombre}</strong>
-            </div>
-        `;
-    });
+    if(div) {
+        div.innerHTML = '';
+        Object.keys(resultados).forEach(giver => {
+            div.innerHTML += `
+                <div class="clean-card" style="padding:10px; font-size:0.9rem; margin-bottom:8px;">
+                    <span>${giver}</span>
+                    <span style="color:var(--accent); font-weight:bold;">➜</span>
+                    <strong>${resultados[giver].nombre}</strong>
+                </div>
+            `;
+        });
+    }
 }
 
 function mostrarResultado(destino) {
@@ -479,12 +517,5 @@ function mostrarResultado(destino) {
     document.getElementById('resNombreDestino').innerText = destino.nombre;
     document.getElementById('resDeseoDestino').innerText = destino.deseo;
 }
-
-document.getElementById('btnEliminarEventoFinal').addEventListener('click', () => {
-    confirmar("¿Eliminar evento permanentemente?", async () => {
-        await deleteDoc(doc(db, "posadas", salaActualId));
-        irA('home');
-    });
-});
 
 verificarHistorial();
