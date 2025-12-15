@@ -103,10 +103,16 @@ function verificarHistorial() {
             const nombre = localStorage.getItem(key);
             
             const btn = document.createElement('div');
+            // NUEVO DISEÑO DE TARJETA HISTORIAL
+            btn.className = 'history-chip';
+            btn.onclick = () => reunirseRapido(codigo, nombre);
             btn.innerHTML = `
-                <div style="cursor:pointer; width:100%; display:flex; justify-content:space-between; align-items:center;" onclick="reunirseRapido('${codigo}', '${nombre}')">
-                    <span>Reingresar a <strong>${codigo}</strong> como <strong>${nombre}</strong></span>
-                    <span style="color:var(--accent)">➔</span>
+                <div class="history-info">
+                    Ingresar a <span class="history-code">${codigo}</span>
+                    <br><span style="font-size:0.8rem; color:#aaa; font-weight:500;">como ${nombre}</span>
+                </div>
+                <div style="color:var(--accent)">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
                 </div>
             `;
             lista.appendChild(btn);
@@ -195,11 +201,11 @@ document.getElementById('btnLogout').addEventListener('click', () => {
     confirmar("¿Cerrar sesión?", () => { signOut(auth); });
 });
 
-// --- DASHBOARD ---
+// --- DASHBOARD (NUEVO DISEÑO TARJETAS) ---
 function activarDashboard() {
     if(!usuarioActual) return;
     const lista = document.getElementById('listaMisPosadas');
-    lista.innerHTML = `<div style="text-align:center; padding:30px;">Cargando...</div>`;
+    lista.innerHTML = `<div style="text-align:center; padding:30px; color:#aaa;">Cargando...</div>`;
     
     if(unsuscribeDashboard) unsuscribeDashboard();
     const q = query(collection(db, "posadas"), where("creadorEmail", "==", usuarioActual.email));
@@ -207,29 +213,37 @@ function activarDashboard() {
     unsuscribeDashboard = onSnapshot(q, (snapshot) => {
         lista.innerHTML = '';
         if(snapshot.empty) {
-            lista.innerHTML = `<div style="text-align:center; padding:30px; border:1px dashed #CCC; border-radius:12px;">No tienes eventos.</div>`;
+            lista.innerHTML = `<div style="text-align:center; padding:30px; border:2px dashed #E0E0E0; border-radius:12px; color:#aaa;">No has creado eventos.</div>`;
             return;
         }
 
         snapshot.forEach((docSnap) => {
             const data = docSnap.data();
             const div = document.createElement('div');
+            // NUEVO DISEÑO LIMPIO
+            div.className = 'event-card';
+            
             const esFinalizado = data.estado === 'cerrada';
-            const estadoStyle = esFinalizado ? 'color:var(--success)' : 'color:var(--accent)';
+            const estadoClase = esFinalizado ? 'status-finished' : 'status-dot';
             const estadoTxt = esFinalizado ? 'Finalizado' : 'Activo';
 
             div.innerHTML = `
-                <div style="flex-grow:1;">
-                    <div style="font-weight:600; font-size:1rem;">${data.nombre}</div>
-                    <div style="font-size:0.8rem; color:var(--text-secondary); margin-top:2px;">
-                        ${data.codigo} • <span style="${estadoStyle}; font-weight:700;">${estadoTxt}</span>
+                <div class="event-info">
+                    <h4>${data.nombre}</h4>
+                    <div class="event-meta">
+                        <span class="${estadoClase}"></span>
+                        <span>${data.codigo}</span>
+                        <span style="color:#ddd">•</span>
+                        <span>${estadoTxt}</span>
                     </div>
                 </div>
                 <div style="display:flex; align-items:center;">
-                    <button class="btn-secondary" style="padding:8px 14px; font-size:0.8rem;" onclick="irEvento('${docSnap.id}')">Ver</button>
-                    <button class="btn-trash" title="Eliminar" onclick="eliminarEventoExterno('${docSnap.id}')">
-                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
-                   </button>
+                    <button class="action-btn btn-view" onclick="irEvento('${docSnap.id}')" title="Ver">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                    </button>
+                    <button class="action-btn btn-delete" onclick="eliminarEventoExterno('${docSnap.id}')" title="Eliminar">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+                    </button>
                 </div>
             `;
             lista.appendChild(div);
@@ -307,17 +321,10 @@ async function intentarUnirse(codigo, nombreAutenticado) {
         const q = query(collection(db, "posadas"), where("codigo", "==", codigo));
         const snap = await getDocs(q);
 
-        // AQUÍ ESTÁ EL CAMBIO: Si no existe, lo borramos de la memoria
         if(snap.empty) {
             notificar("El evento ya no existe", "error");
-            
-            // 1. Borrar de LocalStorage
             localStorage.removeItem(`evento_${codigo}`);
-            
-            // 2. Refrescar la lista visualmente
             verificarHistorial();
-            
-            // 3. Limpiar input
             document.getElementById('inputCodigoHome').value = "";
             return;
         }
