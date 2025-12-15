@@ -4,13 +4,10 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>Intercambio Navideño</title>
-  
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  
   <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
-  
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
@@ -19,22 +16,18 @@
     <div class="card">
       
       <div class="header-nav">
-          <button id="btnAtras" class="btn-icon" style="display: none;" title="Volver">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
-          </button>
-          
+          <button id="btnAtras" class="btn-text" style="display: none;">← Volver</button>
           <h1 id="tituloPrincipal">Intercambio</h1>
-          
           <button id="btnLogout" class="btn-text" style="display: none;">Salir</button>
       </div>
 
-      <div id="vistaHome" class="view-section fade-in">
+      <div id="vistaHome" class="fade-in">
         <p class="subtitle">Organiza tu evento de forma sencilla</p>
         
         <div id="quickJoinContainer" style="display:none; margin-bottom: 24px;">
             <label class="section-label">Tus eventos recientes</label>
-            <div id="listaEventosGuardados" class="scroll-box"></div>
-            <div class="divider">o ingresa otro código</div>
+            <div id="listaEventosGuardados"></div>
+            <div class="divider">o</div>
         </div>
 
         <div class="field">
@@ -46,95 +39,77 @@
         <div class="divider">o</div>
 
         <div id="seccionInvitado">
-            <button id="btnSoyAdmin" class="btn-secondary">Soy Organizador / Iniciar Sesión</button>
+            <button id="btnSoyAdmin" class="btn-secondary">Soy Organizador / Login</button>
         </div>
 
         <div id="seccionAdmin" style="display: none;">
-            <button id="btnAbrirModal" class="btn-primary" style="display:flex; align-items:center; justify-content:center; gap:10px;">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
-                Crear Nuevo Evento
-            </button>
-
-            <div class="mt-large" style="margin-top: 32px;">
+            <button id="btnAbrirModal" class="btn-primary" style="width:100%">+ Crear Nuevo Evento</button>
+            <div style="margin-top: 32px;">
                 <label class="section-label">Mis Eventos Creados</label>
                 <div id="listaMisPosadas" class="scroll-box"></div>
             </div>
         </div>
       </div>
 
-      <div id="vistaRegistro" style="display: none;" class="view-section fade-in">
+      <div id="vistaRegistro" style="display: none;" class="fade-in">
         <p class="subtitle">Entrando a <strong id="lblNombreSala" style="color:var(--accent)">...</strong></p>
         <form id="formRegistro">
           <div class="field">
-            <label>¿Cómo te llamas?</label>
-            <input type="text" id="regNombre" required autocomplete="off" placeholder="Tu nombre completo">
+            <label>Tu nombre</label>
+            <input type="text" id="regNombre" required autocomplete="off">
           </div>
           <div class="field">
-            <label>Tu correo (Para enviarte el resultado)</label>
-            <input type="email" id="regEmail" required autocomplete="off" placeholder="nombre@correo.com">
+            <label>Tu correo</label>
+            <input type="email" id="regEmail" required autocomplete="off">
           </div>
           <div class="field">
             <label>Sugerencia de regalo</label>
-            <input type="text" id="regDeseo" required placeholder="Ej. Libro, Taza, Calcetines..." autocomplete="off">
+            <input type="text" id="regDeseo" required autocomplete="off">
           </div>
-          <button type="submit" class="btn-primary">Confirmar y Entrar</button>
+          <button type="submit" class="btn-primary">Entrar</button>
         </form>
       </div>
 
-      <div id="vistaLobby" style="display: none;" class="view-section fade-in">
+      <div id="vistaLobby" style="display: none;" class="fade-in">
         <div class="lobby-header-card">
-           <div class="lobby-info">
-               <h2 id="lobbyNombreSala">Evento</h2>
-               <p id="lobbyCodigo" class="code-badge">----</p>
-           </div>
-           <div class="lobby-stats" style="margin-top:16px;">
-               <span id="lobbyContador" style="font-size:2rem; font-weight:800; color:var(--text-primary)">0/0</span>
-               <span style="display:block; font-size:0.75rem; color:var(--text-secondary); font-weight:700; letter-spacing:1px; text-transform:uppercase;">Participantes</span>
-           </div>
+           <h2 id="lobbyNombreSala">Evento</h2>
+           <div id="lobbyCodigo" class="code-badge">----</div>
+           <div style="margin-top:16px; font-size:2rem; font-weight:800; color:#1F2937" id="lobbyContador">0/0</div>
         </div>
         
-        <div id="countdownBox" class="countdown-timer">
+        <div class="countdown-timer">
             <small>Tiempo restante</small>
             <div id="timerDisplay">--d --h --m</div>
         </div>
 
-        <div class="mt-large" style="margin-top: 32px;">
+        <div style="margin-top: 32px;">
             <label class="section-label">En la sala</label>
-            <div id="listaParticipantes" class="scroll-box" style="background:#FAFAFA; border-radius:16px; padding:16px;"></div>
+            <div id="listaParticipantes" class="scroll-box"></div>
         </div>
 
         <div id="panelAdminControls" style="display: none;" class="admin-panel">
             <div class="divider">Panel de Control</div>
+            <button id="btnPreSorteo" class="btn-accent">Forzar Sorteo</button>
             
-            <button id="btnPreSorteo" class="btn-accent">Forzar Sorteo Ahora</button>
-            <p style="font-size:0.75rem; color:#A0A0A0; text-align:center; margin-top:8px;">(El sorteo es automático al llenarse la sala)</p>
-            
-            <div id="adminResultadosList" style="display:none;" class="results-container">
-                <p class="section-label" style="margin-top: 24px; text-align:center;">Resultados Generados</p>
-                <div id="listaParejasAdmin" class="scroll-box" style="max-height:200px; margin-bottom: 20px;"></div>
+            <div id="adminResultadosList" style="display:none;">
+                <label class="section-label" style="text-align:center; margin-top:20px;">Resultados</label>
+                <div id="listaParejasAdmin" class="scroll-box"></div>
             </div>
 
             <button id="btnEliminarEventoFinal" class="btn-danger">Eliminar Evento</button>
         </div>
-
-        <p id="msgEspera" style="text-align:center; color:#A0A0A0; margin-top:32px; font-style:italic;">Esperando a que se llene la sala...</p>
+        <p id="msgEspera" style="text-align:center; color:#9CA3AF; margin-top:20px;">Esperando...</p>
       </div>
 
-      <div id="vistaResultado" style="display: none;" class="view-section fade-in centered-content">
-          <h2 style="color:var(--accent); font-size: 1.5rem; margin-bottom: 10px;">¡Sorteo Listo!</h2>
-          <p class="subtitle">Te ha tocado regalarle a:</p>
-          
+      <div id="vistaResultado" style="display: none;" class="fade-in centered-content">
+          <h2 style="color:var(--accent); font-size: 1.5rem;">¡Sorteo Listo!</h2>
           <div class="result-reveal-card">
-              <h1 id="resNombreDestino" style="font-size:2.5rem; margin:0; line-height:1.1;">...</h1>
+              <p class="subtitle">Le regalas a:</p>
+              <h1 id="resNombreDestino" style="font-size:2rem; margin:10px 0;">...</h1>
               <div class="gift-divider">🎁</div>
-              <p style="font-size:0.85rem; color:#A0A0A0; font-weight:700; letter-spacing:1px; text-transform:uppercase;">Su deseo es:</p>
-              <p id="resDeseoDestino" style="font-size:1.4rem; color:var(--text-primary); font-style:italic; margin-top:8px; font-weight:600;">...</p>
+              <p style="font-weight:700; color:#9CA3AF; font-size:0.8rem; text-transform:uppercase;">Deseo:</p>
+              <p id="resDeseoDestino" style="font-size:1.2rem; color:#1F2937; font-style:italic;">...</p>
           </div>
-          
-          <p style="font-size: 0.85rem; color: #858585; margin-top: 24px; line-height:1.5;">
-              Hemos enviado un correo de confirmación a tu email.<br>
-              ¡No le digas a nadie! 🤫
-          </p>
       </div>
 
     </div>
@@ -142,36 +117,33 @@
 
   <div id="modalCrearPosada" class="modal-overlay">
     <div class="modal-box">
-        <h3 class="modal-title">Nuevo Evento</h3>
+        <h3 style="margin:0 0 20px 0; text-align:center;">Nuevo Evento</h3>
         <div class="field">
-            <label>Nombre del evento</label>
-            <input type="text" id="newNombre" placeholder="Ej. Cena Navideña" autocomplete="off">
+            <label>Nombre</label>
+            <input type="text" id="newNombre" autocomplete="off">
         </div>
         <div class="field">
-            <label>Fecha y Hora</label>
-            <div class="date-input-wrapper">
-                <input type="datetime-local" id="newFecha">
-            </div>
+            <label>Fecha</label>
+            <div style="background:#F3F4F6; border-radius:16px; padding:5px;"><input type="datetime-local" id="newFecha" style="background:transparent; border:none;"></div>
         </div>
         <div class="field">
             <label>Capacidad</label>
-            <input type="number" id="newMax" value="10" min="2">
-            <small style="color:#A0A0A0; font-size:0.75rem; margin-top:4px; display:block;">El sorteo inicia automáticamente al llegar a este número.</small>
+            <input type="number" id="newMax" value="10">
         </div>
-        <div class="footer-actions">
-            <button id="btnCancelarModal" class="btn-ghost">Cancelar</button>
-            <button id="btnConfirmarCrear" class="btn-primary">Crear</button>
+        <div style="display:flex; gap:10px; margin-top:20px;">
+            <button id="btnCancelarModal" class="btn-ghost" style="flex:1">Cancelar</button>
+            <button id="btnConfirmarCrear" class="btn-primary" style="flex:1">Crear</button>
         </div>
     </div>
   </div>
 
   <div id="modalConfirmacion" class="modal-overlay" style="z-index: 10000;">
       <div class="modal-box" style="text-align:center;">
-          <h3 class="modal-title">¿Estás seguro?</h3>
-          <p id="txtConfirmacion" class="confirm-message" style="margin-bottom:24px;">...</p>
-          <div class="footer-actions">
-              <button id="btnNoConfirm" class="btn-ghost">No, cancelar</button>
-              <button id="btnSiConfirm" class="btn-primary">Sí, confirmar</button>
+          <h3 style="margin-top:0;">¿Seguro?</h3>
+          <p id="txtConfirmacion" style="color:#6B7280; margin-bottom:24px;">...</p>
+          <div style="display:flex; gap:10px;">
+              <button id="btnNoConfirm" class="btn-ghost" style="flex:1">No</button>
+              <button id="btnSiConfirm" class="btn-primary" style="flex:1">Sí</button>
           </div>
       </div>
   </div>
