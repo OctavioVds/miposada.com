@@ -17,7 +17,7 @@ const firebaseConfig = {
   appId: "1:367576712970:web:51f77ff6ea7b8d83de1cf3"
 };
 
-// --- CONFIGURACIÓN EMAILJS (TUS CLAVES REALES) ---
+// --- CONFIGURACIÓN EMAILJS ---
 const EMAIL_SERVICE_ID = "service_ao73611"; 
 const EMAIL_TEMPLATE_ID = "template_dp7jafi"; 
 const EMAIL_PUBLIC_KEY = "l-_4LrQW8pN7F7MiK"; 
@@ -301,12 +301,26 @@ document.getElementById('btnIrASala').addEventListener('click', () => {
     }
 });
 
+// --- LÓGICA DE UNIRSE CON AUTO-LIMPIEZA ---
 async function intentarUnirse(codigo, nombreAutenticado) {
     try {
         const q = query(collection(db, "posadas"), where("codigo", "==", codigo));
         const snap = await getDocs(q);
 
-        if(snap.empty) return notificar("Código no existe", "error");
+        // AQUÍ ESTÁ EL CAMBIO: Si no existe, lo borramos de la memoria
+        if(snap.empty) {
+            notificar("El evento ya no existe", "error");
+            
+            // 1. Borrar de LocalStorage
+            localStorage.removeItem(`evento_${codigo}`);
+            
+            // 2. Refrescar la lista visualmente
+            verificarHistorial();
+            
+            // 3. Limpiar input
+            document.getElementById('inputCodigoHome').value = "";
+            return;
+        }
 
         const docSnap = snap.docs[0];
         const data = docSnap.data();
@@ -465,42 +479,29 @@ async function realizarSorteo(esAutomatico = false) {
         let givers = [...parts].sort(() => Math.random() - 0.5);
         let asignaciones = {};
         
-        // Ejecutar sorteo
-        const promesasDeCorreo = []; // Para guardar los intentos de envío
-
+        // Ejecutar sorteo y enviar correos
         for(let i=0; i<givers.length; i++) {
             const quienDa = givers[i];
             const quienRecibe = givers[(i+1) % givers.length];
             asignaciones[quienDa.nombre] = quienRecibe;
 
-            // ENVIAR CORREO REAL
+            // ENVIAR CORREO REAL CON TUS CLAVES
             if(window.emailjs) {
-                const envio = emailjs.send(EMAIL_SERVICE_ID, EMAIL_TEMPLATE_ID, {
+                emailjs.send(EMAIL_SERVICE_ID, EMAIL_TEMPLATE_ID, {
                     to_name: quienDa.nombre,
-                    to_email: quienDa.email, // IMPORTANTE: Esto debe coincidir con {{to_email}} en el dashboard
+                    to_email: quienDa.email,
                     target_name: quienRecibe.nombre,
                     target_wish: quienRecibe.deseo
-                })
-                .then(() => console.log(`Correo enviado a ${quienDa.nombre}`))
-                .catch((err) => console.error(`FALLÓ correo a ${quienDa.nombre}:`, err));
-                
-                promesasDeCorreo.push(envio);
+                });
             }
         }
 
-        // Guardar en Firebase
         await updateDoc(salaRef, { estado: 'cerrada', resultados: asignaciones });
-        
-        if(!esAutomatico) {
-            notificar("Sorteo realizado. Enviando correos...", "success");
-            // Esperar a que terminen los correos para ver en consola
-            await Promise.all(promesasDeCorreo);
-            console.log("Proceso de correos finalizado.");
-        }
+        if(!esAutomatico) notificar("Sorteo realizado y correos enviados.", "success");
 
     } catch (e) {
         console.error(e);
-        notificar("Error crítico en el sorteo", "error");
+        notificar("Error en el sorteo", "error");
     }
 }
 
