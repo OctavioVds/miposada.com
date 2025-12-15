@@ -17,25 +17,24 @@ const firebaseConfig = {
   appId: "1:367576712970:web:51f77ff6ea7b8d83de1cf3"
 };
 
-// --- CONFIGURACIÓN EMAILJS ---
+// --- CONFIGURACIÓN EMAILJS (CONFIRMADAS) ---
 const EMAIL_SERVICE_ID = "service_ao73611"; 
 const EMAIL_TEMPLATE_ID = "template_dp7jafi"; 
 const EMAIL_PUBLIC_KEY = "l-_4LrQW8pN7F7MiK"; 
 
-// Inicializar EmailJS con protección (para que no rompa la app si falla)
+// Inicializar EmailJS con reporte de estado
 try {
-    if(window.emailjs) window.emailjs.init(EMAIL_PUBLIC_KEY);
-} catch (error) {
-    console.warn("Advertencia: EmailJS no pudo iniciarse (Bloqueador de anuncios detectado?)", error);
-}
+    if(window.emailjs) {
+        window.emailjs.init(EMAIL_PUBLIC_KEY);
+        console.log("EmailJS iniciado correctamente ✅");
+    }
+} catch (e) { console.error("Error iniciando EmailJS", e); }
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
 const provider = new GoogleAuthProvider();
 provider.setCustomParameters({ prompt: 'select_account' });
-
-console.log("App iniciada correctamente 🚀"); // Mensaje para verificar que el JS cargó
 
 // --- UI HELPERS ---
 function notificar(msg) {
@@ -50,11 +49,9 @@ function notificar(msg) {
     toast.innerText = msg;
     container.appendChild(toast);
     
-    // Animación
     toast.animate([{ opacity:0, transform:'translateY(-10px)' }, { opacity:1, transform:'translateY(0)' }], { duration: 300 });
     setTimeout(() => {
-        const anim = toast.animate([{ opacity:1 }, { opacity:0 }], { duration: 300 });
-        anim.onfinish = () => toast.remove();
+        toast.animate([{ opacity:1 }, { opacity:0 }], { duration: 300 }).onfinish = () => toast.remove();
     }, 3000);
 }
 
@@ -117,8 +114,7 @@ function verificarHistorial() {
 }
 
 window.reunirseRapido = async (codigo, nombre) => {
-    const input = document.getElementById('inputCodigoHome');
-    if(input) input.value = codigo;
+    document.getElementById('inputCodigoHome').value = codigo;
     await intentarUnirse(codigo, nombre); 
 };
 
@@ -295,14 +291,12 @@ document.getElementById('btnConfirmarCrear')?.addEventListener('click', async ()
     finally { btn.innerText = "Crear"; btn.disabled = false; }
 });
 
-// --- LÓGICA DE UNIRSE (AQUÍ ESTABA EL PROBLEMA, REVISADO) ---
+// --- LÓGICA DE UNIRSE ---
 document.getElementById('btnIrASala')?.addEventListener('click', () => {
     const codigoInput = document.getElementById('inputCodigoHome');
-    if(!codigoInput) return; // Seguridad extra
+    if(!codigoInput) return;
     
     const codigo = codigoInput.value.trim().toUpperCase();
-    console.log("Botón Unirse clickeado. Código:", codigo); // DEBUG
-
     if(codigo.length < 3) return notificar("Código muy corto");
     
     const nombreGuardado = obtenerSesionLocal(codigo);
@@ -312,12 +306,10 @@ document.getElementById('btnIrASala')?.addEventListener('click', () => {
 
 async function intentarUnirse(codigo, nombreAutenticado) {
     try {
-        console.log("Buscando evento en Firebase..."); // DEBUG
         const q = query(collection(db, "posadas"), where("codigo", "==", codigo));
         const snap = await getDocs(q);
 
         if(snap.empty) {
-            console.log("Evento no encontrado"); // DEBUG
             notificar("El evento no existe");
             localStorage.removeItem(`evento_${codigo}`);
             verificarHistorial();
@@ -461,6 +453,7 @@ document.getElementById('btnPreSorteo')?.addEventListener('click', () => {
     confirmar("¿Forzar sorteo ahora?", () => realizarSorteo(false));
 });
 
+// --- LÓGICA DE CORREO REFORZADA ---
 async function realizarSorteo(esAutomatico) {
     try {
         const docRef = doc(db, "posadas", salaActualId);
@@ -475,25 +468,35 @@ async function realizarSorteo(esAutomatico) {
         let givers = [...parts].sort(() => Math.random() - 0.5);
         let asignaciones = {};
         
+        // Loop para asignar y enviar correos
         for(let i=0; i<givers.length; i++) {
             const giver = givers[i];
             const receiver = givers[(i+1) % givers.length];
             asignaciones[giver.nombre] = receiver;
 
+            // Enviar Correo con LOGGING y retraso ligero
             if(window.emailjs) {
+                // Pequeña pausa para no saturar la API gratuita
+                await new Promise(r => setTimeout(r, 500)); 
+                
                 emailjs.send(EMAIL_SERVICE_ID, EMAIL_TEMPLATE_ID, {
                     to_name: giver.nombre,
                     to_email: giver.email,
                     target_name: receiver.nombre,
                     target_wish: receiver.deseo
-                });
+                })
+                .then(() => console.log(`✅ Correo enviado a ${giver.email}`))
+                .catch((err) => console.error(`❌ Error enviando a ${giver.email}`, err));
             }
         }
 
         await updateDoc(docRef, { estado: 'cerrada', resultados: asignaciones });
-        if(!esAutomatico) notificar("Sorteo realizado");
+        if(!esAutomatico) notificar("Sorteo realizado y correos enviados");
 
-    } catch (e) { notificar("Error en el sorteo"); }
+    } catch (e) { 
+        console.error(e);
+        notificar("Error en el sorteo"); 
+    }
 }
 
 function renderResultados(resultados) {
@@ -517,5 +520,12 @@ function mostrarResultado(destino) {
     document.getElementById('resNombreDestino').innerText = destino.nombre;
     document.getElementById('resDeseoDestino').innerText = destino.deseo;
 }
+
+document.getElementById('btnEliminarEventoFinal')?.addEventListener('click', () => {
+    confirmar("¿Eliminar evento permanentemente?", async () => {
+        await deleteDoc(doc(db, "posadas", salaActualId));
+        irA('home');
+    });
+});
 
 verificarHistorial();
