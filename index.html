@@ -7,6 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
@@ -26,6 +27,12 @@
       <div id="vistaHome" class="view-section fade-in">
         <p class="subtitle">Organiza tu evento navideño</p>
         
+        <div id="quickJoinContainer" style="display:none; margin-bottom: 20px;">
+            <label class="section-label">Tus eventos recientes</label>
+            <div id="listaEventosGuardados" class="scroll-box compact-list"></div>
+            <div class="divider">o ingresa otro código</div>
+        </div>
+
         <div class="field">
           <label>Código de sala</label>
           <input type="text" id="inputCodigoHome" placeholder="Ej: A1B2" class="input-code">
@@ -35,7 +42,7 @@
         <div class="divider">o</div>
 
         <div id="seccionInvitado">
-            <button id="btnSoyAdmin" class="btn-secondary">Iniciar Sesión / Crear Evento</button>
+            <button id="btnSoyAdmin" class="btn-secondary">Soy Organizador / Login</button>
         </div>
 
         <div id="seccionAdmin" style="display: none;">
@@ -45,9 +52,8 @@
             </button>
 
             <div class="my-events-container mt-large">
-                <label class="section-label">Mis Eventos</label>
-                <div id="listaMisPosadas" class="scroll-box standard-list">
-                    </div>
+                <label class="section-label">Mis Eventos Creados</label>
+                <div id="listaMisPosadas" class="scroll-box standard-list"></div>
             </div>
         </div>
       </div>
@@ -60,8 +66,8 @@
             <input type="text" id="regNombre" required autocomplete="off" placeholder="Nombre completo">
           </div>
           <div class="field">
-            <label>Tu correo (Para enviarte el resultado)</label>
-            <input type="email" id="regEmail" required autocomplete="off" placeholder="ejemplo@correo.com">
+            <label>Tu correo (Obligatorio para enviarte el resultado)</label>
+            <input type="email" id="regEmail" required autocomplete="off" placeholder="tucorreo@gmail.com">
           </div>
           <div class="field">
             <label>Sugerencia de regalo</label>
@@ -94,19 +100,20 @@
         </div>
 
         <div id="panelAdminControls" style="display: none;" class="admin-panel">
-            <div class="admin-label">Administración</div>
+            <div class="admin-label">Panel de Control</div>
             
-            <button id="btnPreSorteo" class="btn-accent">Realizar Sorteo</button>
+            <button id="btnPreSorteo" class="btn-accent">Forzar Sorteo Manual</button>
+            <p style="font-size:0.75rem; color:#8C8A85; text-align:center; margin-top:5px;">(El sorteo será automático al llenarse la sala)</p>
             
             <div id="adminResultadosList" style="display:none;" class="results-container">
-                <p class="section-label" style="margin-top: 20px;">Resultados Generados</p>
+                <p class="section-label" style="margin-top: 20px;">Resultados</p>
                 <div id="listaParejasAdmin" class="compact-list" style="margin-bottom: 20px;"></div>
             </div>
 
             <button id="btnEliminarEventoFinal" class="btn-danger">Eliminar Evento</button>
         </div>
 
-        <p id="msgEspera" class="status-message">Esperando al organizador...</p>
+        <p id="msgEspera" class="status-message">Esperando a que se llene la sala...</p>
       </div>
 
       <div id="vistaResultado" style="display: none;" class="view-section fade-in centered-content">
@@ -119,7 +126,7 @@
               <p id="resDeseoDestino" class="wish-text">...</p>
           </div>
           <p style="font-size: 0.8rem; color: #8C8A85; margin-top: 20px;">
-              Tip: Puedes volver a ver este resultado entrando con tu nombre y código.
+              Se ha enviado un correo con esta información.
           </p>
       </div>
 
@@ -140,7 +147,7 @@
             </div>
         </div>
         <div class="field">
-            <label>Capacidad</label>
+            <label>Capacidad (Sorteo automático al llegar)</label>
             <input type="number" id="newMax" value="10" min="2">
         </div>
         <div class="modal-actions footer-actions">
