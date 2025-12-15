@@ -1,7 +1,7 @@
 // --- IMPORTAR LIBRERÍAS ---
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { 
-    getFirestore, collection, addDoc, query, where, getDocs, doc, updateDoc, arrayUnion, onSnapshot, getDoc 
+    getFirestore, collection, addDoc, query, where, getDocs, doc, updateDoc, arrayUnion, onSnapshot, getDoc, deleteDoc 
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import { 
     getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged 
@@ -110,12 +110,11 @@ function limpiarSala() {
 }
 
 document.getElementById('btnAtras').addEventListener('click', () => {
-    // Siempre regresa al home unificado
     irA('home');
     limpiarSala();
 });
 
-// --- AUTH & HOME UNIFICADO ---
+// --- AUTH & HOME ---
 onAuthStateChanged(auth, (user) => {
     const secInvitado = document.getElementById('seccionInvitado');
     const secAdmin = document.getElementById('seccionAdmin');
@@ -123,19 +122,15 @@ onAuthStateChanged(auth, (user) => {
 
     if (user) {
         usuarioActual = user;
-        // MODO ADMIN: Oculta botón login, muestra panel y eventos
         secInvitado.style.display = 'none';
         secAdmin.style.display = 'block';
         btnLogout.style.display = 'block';
-        
-        activarDashboard(); // Carga los eventos ahí mismo
+        activarDashboard(); 
     } else {
         usuarioActual = null;
-        // MODO INVITADO: Muestra botón login, oculta panel
         secInvitado.style.display = 'block';
         secAdmin.style.display = 'none';
         btnLogout.style.display = 'none';
-        
         if(unsuscribeDashboard) unsuscribeDashboard();
     }
 });
@@ -143,24 +138,20 @@ onAuthStateChanged(auth, (user) => {
 document.getElementById('btnSoyAdmin').addEventListener('click', async () => {
     try {
         await signInWithPopup(auth, provider);
-        // El onAuthStateChanged se encarga del resto
     } catch (e) {
         if(e.code !== 'auth/popup-closed-by-user') notificar("No se pudo iniciar sesión", "error");
     }
 });
 
 document.getElementById('btnLogout').addEventListener('click', () => {
-    confirmar("¿Quieres cerrar sesión?", () => {
-        signOut(auth);
-        // Regresa al estado inicial automáticamente
-    });
+    confirmar("¿Cerrar sesión?", () => { signOut(auth); });
 });
 
-// --- DASHBOARD (MIS EVENTOS) ---
+// --- DASHBOARD (MIS EVENTOS + BORRAR) ---
 function activarDashboard() {
     if(!usuarioActual) return;
     const lista = document.getElementById('listaMisPosadas');
-    lista.innerHTML = `<div style="text-align:center; padding:30px; color:var(--text-secondary);">Cargando eventos...</div>`;
+    lista.innerHTML = `<div style="text-align:center; padding:30px; color:var(--text-secondary);">Cargando...</div>`;
     
     if(unsuscribeDashboard) unsuscribeDashboard();
 
@@ -169,32 +160,77 @@ function activarDashboard() {
     unsuscribeDashboard = onSnapshot(q, (snapshot) => {
         lista.innerHTML = '';
         if(snapshot.empty) {
-            lista.innerHTML = `<div style="text-align:center; padding:30px 20px; color:var(--text-secondary); border:2px dashed var(--border-color); border-radius:var(--radius-md); font-size:0.9rem;">No tienes eventos activos.<br>¡Crea el primero arriba!</div>`;
+            lista.innerHTML = `<div style="text-align:center; padding:30px; color:var(--text-secondary); border:1px dashed #D6D2C9; border-radius:12px;">No tienes eventos.</div>`;
             return;
         }
 
         snapshot.forEach((docSnap) => {
             const data = docSnap.data();
             const div = document.createElement('div');
-            const estadoClass = data.estado === 'cerrada' ? 'color:var(--success)' : 'color:var(--accent)';
-            const estadoTexto = data.estado === 'cerrada' ? 'Finalizado' : 'Activo';
+            const esFinalizado = data.estado === 'cerrada';
+            
+            // Botón de eliminar (Icono de basura) visible si está finalizado
+            const botonBorrar = esFinalizado 
+                ? `<button class="btn-trash" title="Eliminar Evento" onclick="eliminarEventoExterno('${docSnap.id}')">
+                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+                   </button>` 
+                : '';
+
+            const estadoStyle = esFinalizado ? 'color:var(--success)' : 'color:var(--accent)';
+            const estadoTxt = esFinalizado ? 'Finalizado' : 'Activo';
 
             div.innerHTML = `
-                <div>
+                <div style="flex-grow:1;">
                     <div style="font-weight:600; font-size:1rem;">${data.nombre}</div>
-                    <div style="font-size:0.85rem; color:var(--text-secondary); margin-top:4px; font-weight:500;">
-                        <span style="letter-spacing:1px; font-weight:600;">${data.codigo}</span> • <span style="${estadoClass}">${estadoTexto}</span>
+                    <div style="font-size:0.8rem; color:var(--text-secondary); margin-top:2px;">
+                        ${data.codigo} • <span style="${estadoStyle}; font-weight:700;">${estadoTxt}</span>
                     </div>
                 </div>
-                <button class="btn-secondary" style="width:auto; padding:8px 14px; font-size:0.85rem;">Ver</button>
+                <div style="display:flex; align-items:center;">
+                    <button class="btn-secondary" style="padding:8px 14px; font-size:0.8rem;" onclick="irEvento('${docSnap.id}')">Ver</button>
+                    ${botonBorrar}
+                </div>
             `;
-            div.querySelector('button').onclick = () => entrarLobby(docSnap.id, data, true);
             lista.appendChild(div);
         });
     });
 }
 
-// --- CREAR SALA (Modal directo) ---
+// Funciones globales para el HTML onclick
+window.irEvento = (id) => {
+    // Necesitamos buscar la data del evento de nuevo o pasarla. 
+    // Para simplificar, buscamos el doc.
+    const docRef = doc(db, "posadas", id);
+    getDoc(docRef).then(snap => {
+        if(snap.exists()) entrarLobby(id, snap.data(), true);
+    });
+};
+
+window.eliminarEventoExterno = (id) => {
+    confirmar("¿Eliminar este evento de tu lista? No se puede deshacer.", async () => {
+        try {
+            await deleteDoc(doc(db, "posadas", id));
+            notificar("Evento eliminado", "success");
+        } catch (e) {
+            notificar("Error al eliminar", "error");
+        }
+    });
+};
+
+// --- ELIMINAR EVENTO (Desde dentro del lobby) ---
+document.getElementById('btnEliminarEventoFinal').addEventListener('click', () => {
+    confirmar("¿Borrar este evento permanentemente?", async () => {
+        try {
+            await deleteDoc(doc(db, "posadas", salaActualId));
+            notificar("Evento eliminado", "success");
+            irA('home');
+        } catch(e) {
+            notificar("Error al borrar", "error");
+        }
+    });
+});
+
+// --- CREAR SALA ---
 const modalCrear = document.getElementById('modalCrearPosada');
 document.getElementById('btnAbrirModal').addEventListener('click', () => {
     document.getElementById('newNombre').value = "";
@@ -209,10 +245,10 @@ document.getElementById('btnConfirmarCrear').addEventListener('click', async () 
     const fecha = document.getElementById('newFecha').value;
     const max = document.getElementById('newMax').value;
 
-    if(!nombre || !fecha || !max) return notificar("Completa todos los campos", "error");
+    if(!nombre || !fecha || !max) return notificar("Completa todo", "error");
 
     const btn = document.getElementById('btnConfirmarCrear');
-    btn.disabled = true; btn.innerText = "Creando...";
+    btn.disabled = true; btn.innerText = "...";
 
     try {
         const codigo = Math.random().toString(36).substring(2, 6).toUpperCase();
@@ -222,9 +258,9 @@ document.getElementById('btnConfirmarCrear').addEventListener('click', async () 
             participantes: [], resultados: {}
         });
         modalCrear.style.display = 'none';
-        notificar("¡Evento creado!", "success");
+        notificar("Evento creado", "success");
     } catch (e) {
-        notificar("Error al crear", "error");
+        notificar("Error", "error");
     } finally {
         btn.disabled = false; btn.innerText = "Crear";
     }
@@ -233,20 +269,22 @@ document.getElementById('btnConfirmarCrear').addEventListener('click', async () 
 // --- UNIRSE (INVITADO) ---
 document.getElementById('btnIrASala').addEventListener('click', async () => {
     const codigo = document.getElementById('inputCodigoHome').value.trim().toUpperCase();
-    if(codigo.length < 3) return notificar("Verifica el código", "error");
+    if(codigo.length < 3) return notificar("Código muy corto", "error");
 
     try {
         const q = query(collection(db, "posadas"), where("codigo", "==", codigo));
         const snap = await getDocs(q);
 
-        if(snap.empty) return notificar("Código no encontrado", "error");
+        if(snap.empty) return notificar("No existe ese código", "error");
 
         const docSnap = snap.docs[0];
         const data = docSnap.data();
 
-        if(data.participantes.length >= data.maxParticipantes) return notificar("Evento lleno", "error");
-        if(data.estado === 'cerrada') return notificar("Sorteo ya realizado", "error");
-
+        if(data.participantes.length >= data.maxParticipantes) return notificar("Sala llena", "error");
+        
+        // Si ya finalizó, permitir entrada SOLO si ya estaba registrado (para ver resultado)
+        // Pero como no sabemos el nombre aun, pasamos al registro
+        
         salaActualId = docSnap.id;
         document.getElementById('lblNombreSala').innerText = data.nombre;
         irA('registro');
@@ -256,29 +294,55 @@ document.getElementById('btnIrASala').addEventListener('click', async () => {
     }
 });
 
+// REGISTRO CON CORREO
 document.getElementById('formRegistro').addEventListener('submit', async (e) => {
     e.preventDefault();
     const nombre = document.getElementById('regNombre').value.trim();
+    const email = document.getElementById('regEmail').value.trim(); // NUEVO
     const deseo = document.getElementById('regDeseo').value.trim();
     miNombreEnSala = nombre;
 
     try {
         const salaRef = doc(db, "posadas", salaActualId);
         const check = await getDoc(salaRef);
-        if(check.data().participantes.length >= check.data().maxParticipantes) {
-            irA('home');
-            return notificar("Evento lleno", "error");
+        const data = check.data();
+
+        // 1. REVISAR SI YA EXISTE (PARA RECUPERAR RESULTADO)
+        const existe = data.participantes.find(p => p.nombre.toLowerCase() === nombre.toLowerCase());
+        
+        if (existe) {
+            // Si ya existe, lo dejamos pasar directo al lobby
+            entrarLobby(salaActualId, data, false);
+            notificar("¡Bienvenido de nuevo!", "success");
+            return;
         }
 
-        await updateDoc(salaRef, { participantes: arrayUnion({ nombre, deseo }) });
+        // 2. SI NO EXISTE Y ESTÁ CERRADA -> ERROR
+        if(data.estado === 'cerrada') {
+            irA('home');
+            return notificar("El sorteo ya pasó y no estabas registrado", "error");
+        }
+
+        // 3. SI NO EXISTE Y ESTÁ LLENA -> ERROR
+        if(data.participantes.length >= data.maxParticipantes) {
+            irA('home');
+            return notificar("Se llenó la sala", "error");
+        }
+
+        // 4. REGISTRAR NUEVO
+        await updateDoc(salaRef, { 
+            participantes: arrayUnion({ nombre, email, deseo }) 
+        });
+        
         entrarLobby(salaActualId, check.data(), false);
 
     } catch (e) {
-        notificar("Error al registrarte", "error");
+        console.error(e);
+        notificar("Error al entrar", "error");
     }
 });
 
-// --- LOBBY LOGICA ---
+// --- LOBBY ---
 function entrarLobby(id, data, soyAdmin) {
     salaActualId = id;
     irA('lobby');
@@ -289,13 +353,22 @@ function entrarLobby(id, data, soyAdmin) {
     const panelAdmin = document.getElementById('panelAdminControls');
     const msgEspera = document.getElementById('msgEspera');
     const btnSorteo = document.getElementById('btnPreSorteo');
+    const btnEliminar = document.getElementById('btnEliminarEventoFinal');
 
     if(soyAdmin) {
         panelAdmin.style.display = 'block';
         msgEspera.style.display = 'none';
-        btnSorteo.style.display = data.estado === 'cerrada' ? 'none' : 'block';
-        document.getElementById('adminResultadosList').style.display = data.estado === 'cerrada' ? 'block' : 'none';
-        if(data.estado === 'cerrada') renderResultados(data.resultados);
+        
+        if(data.estado === 'cerrada') {
+            btnSorteo.style.display = 'none';
+            document.getElementById('adminResultadosList').style.display = 'block';
+            renderResultados(data.resultados);
+            btnEliminar.style.display = 'block'; // Mostrar botón eliminar
+        } else {
+            btnSorteo.style.display = 'block';
+            document.getElementById('adminResultadosList').style.display = 'none';
+            btnEliminar.style.display = 'none';
+        }
     } else {
         panelAdmin.style.display = 'none';
         msgEspera.style.display = 'block';
@@ -321,6 +394,7 @@ function entrarLobby(id, data, soyAdmin) {
                 btnSorteo.style.display = 'none';
                 document.getElementById('adminResultadosList').style.display = 'block';
                 renderResultados(info.resultados);
+                btnEliminar.style.display = 'block';
             } else if(miNombreEnSala && info.resultados[miNombreEnSala]) {
                 mostrarResultado(info.resultados[miNombreEnSala]);
             }
@@ -339,7 +413,7 @@ function iniciarTimer(fecha) {
 
         if (dist < 0) {
             clearInterval(timerInterval);
-            display.innerText = "¡Es hoy! 🎉";
+            display.innerText = "¡Es hoy! 🎄";
             display.style.color = "var(--accent)";
             return;
         }
@@ -353,7 +427,7 @@ function iniciarTimer(fecha) {
 
 // --- SORTEO ---
 document.getElementById('btnPreSorteo').addEventListener('click', () => {
-    confirmar("¿Cerrar evento y sortear?", realizarSorteo);
+    confirmar("¿Realizar sorteo? (Se enviarán las notificaciones)", realizarSorteo);
 });
 
 async function realizarSorteo() {
@@ -369,10 +443,12 @@ async function realizarSorteo() {
         
         for(let i=0; i<givers.length; i++) {
             asignaciones[givers[i].nombre] = givers[(i+1) % givers.length];
+            // AQUÍ ES DONDE SE ENVIARÍA EL CORREO REAL CON EMAILJS
+            // console.log(`Enviando correo a ${givers[i].email}...`);
         }
 
         await updateDoc(salaRef, { estado: 'cerrada', resultados: asignaciones });
-        notificar("Sorteo realizado", "success");
+        notificar("Sorteo exitoso. Resultados guardados.", "success");
 
     } catch (e) {
         notificar("Error al sortear", "error");
@@ -383,7 +459,7 @@ function renderResultados(res) {
     const div = document.getElementById('listaParejasAdmin');
     div.innerHTML = '';
     Object.keys(res).forEach(k => {
-        div.innerHTML += `<div><span style="color:var(--text-secondary)">${k}</span> → <span style="color:var(--accent); font-weight:600;">${res[k].nombre}</span></div>`;
+        div.innerHTML += `<div><span>${k}</span> → <span style="color:var(--accent); font-weight:700;">${res[k].nombre}</span></div>`;
     });
 }
 

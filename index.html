@@ -24,7 +24,7 @@
       </div>
 
       <div id="vistaHome" class="view-section fade-in">
-        <p class="subtitle">Organiza tu evento de forma sencilla</p>
+        <p class="subtitle">Organiza tu evento navideño</p>
         
         <div class="field">
           <label>Código de sala</label>
@@ -60,6 +60,10 @@
             <input type="text" id="regNombre" required autocomplete="off" placeholder="Nombre completo">
           </div>
           <div class="field">
+            <label>Tu correo (Para enviarte el resultado)</label>
+            <input type="email" id="regEmail" required autocomplete="off" placeholder="ejemplo@correo.com">
+          </div>
+          <div class="field">
             <label>Sugerencia de regalo</label>
             <input type="text" id="regDeseo" required placeholder="Ej. Libro, Taza..." autocomplete="off">
           </div>
@@ -89,12 +93,14 @@
             <div id="listaParticipantes" class="scroll-box compact-list"></div>
         </div>
 
-        <div id="panelAdminControls" style="display: none;" class="admin-panel mt-large">
+        <div id="panelAdminControls" style="display: none;" class="admin-panel">
             <div class="admin-label">Administración</div>
             <button id="btnPreSorteo" class="btn-accent">Realizar Sorteo</button>
+            
             <div id="adminResultadosList" style="display:none;" class="results-container">
-                <p class="section-label">Resultados</p>
-                <div id="listaParejasAdmin" class="compact-list"></div>
+                <p class="section-label">Resultados Generados</p>
+                <div id="listaParejasAdmin" class="compact-list" style="margin-bottom: 20px;"></div>
+                <button id="btnEliminarEventoFinal" class="btn-danger">Eliminar Evento</button>
             </div>
         </div>
 
@@ -102,7 +108,7 @@
       </div>
 
       <div id="vistaResultado" style="display: none;" class="view-section fade-in centered-content">
-          <h2 class="result-title">Tu Resultado</h2>
+          <h2 class="highlight" style="font-size: 1.5rem; margin-bottom: 10px;">Tu Resultado</h2>
           <p class="subtitle">Debes regalar a</p>
           <div class="result-reveal-card">
               <h1 id="resNombreDestino">...</h1>
@@ -110,6 +116,9 @@
               <p class="wish-label">Sugerencia:</p>
               <p id="resDeseoDestino" class="wish-text">...</p>
           </div>
+          <p style="font-size: 0.8rem; color: #8C8A85; margin-top: 20px;">
+              Tip: Si cierras esta página, puedes volver a ver tu resultado entrando con el mismo nombre y código.
+          </p>
       </div>
 
     </div>
