@@ -35,7 +35,6 @@ function notificar(msg, duracion=3000) {
     toast.className = 'toast';
     toast.innerText = msg;
     container.appendChild(toast);
-    
     setTimeout(() => { toast.remove(); }, duracion);
 }
 
@@ -166,7 +165,7 @@ document.getElementById('btnLogout')?.addEventListener('click', () => {
     confirmar("¿Quieres cerrar sesión?", () => signOut(auth));
 });
 
-// --- DASHBOARD ---
+// --- DASHBOARD ADMIN ---
 function activarDashboard() {
     if(!usuarioActual) return;
     const lista = document.getElementById('listaMisPosadas');
@@ -236,7 +235,6 @@ document.getElementById('btnAbrirModal')?.addEventListener('click', () => {
     const fechaInput = document.getElementById('newFecha');
     fechaInput.value = "";
     
-    // Bloquear fechas pasadas
     const now = new Date();
     now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
     fechaInput.min = now.toISOString().slice(0, 16);
@@ -256,8 +254,7 @@ document.getElementById('btnConfirmarCrear')?.addEventListener('click', async ()
 
     if(!nombre || !fecha || !max) return notificar("Faltan datos");
 
-    btn.innerText = "Creando..."; 
-    btn.disabled = true;
+    btn.innerText = "Creando..."; btn.disabled = true;
 
     try {
         const codigo = Math.random().toString(36).substring(2, 6).toUpperCase();
@@ -269,10 +266,7 @@ document.getElementById('btnConfirmarCrear')?.addEventListener('click', async ()
         if(modalCrear) modalCrear.style.display = 'none';
         notificar("¡Evento creado!");
     } catch (e) { notificar("Error al crear"); } 
-    finally { 
-        btn.innerText = "Crear"; 
-        btn.disabled = false; 
-    }
+    finally { btn.innerText = "Crear"; btn.disabled = false; }
 });
 
 // --- UNIRSE ---
@@ -324,7 +318,6 @@ async function intentarUnirse(codigo, nombreAutenticado) {
     }
 }
 
-// --- REGISTRO SIN CORREO ---
 document.getElementById('formRegistro')?.addEventListener('submit', async (e) => {
     e.preventDefault();
     const btn = document.getElementById('btnSubmitRegistro');
@@ -341,7 +334,6 @@ document.getElementById('formRegistro')?.addEventListener('submit', async (e) =>
         const snap = await getDoc(salaRef);
         const data = snap.data();
 
-        // Verificar por nombre exacto
         const existe = data.participantes.find(p => p.nombre.toLowerCase() === nombre.toLowerCase());
         
         if (existe) {
@@ -355,10 +347,7 @@ document.getElementById('formRegistro')?.addEventListener('submit', async (e) =>
         if(data.estado === 'cerrada') return notificar("El sorteo ya cerró");
         if(data.participantes.length >= data.maxParticipantes) return notificar("Sala llena");
 
-        // Registrar
-        await updateDoc(salaRef, { 
-            participantes: arrayUnion({ nombre, deseo }) 
-        });
+        await updateDoc(salaRef, { participantes: arrayUnion({ nombre, deseo }) });
         
         guardarSesionLocal(data.codigo, nombre);
         miNombreEnSala = nombre;
@@ -376,7 +365,7 @@ document.getElementById('formRegistro')?.addEventListener('submit', async (e) =>
     finally { btn.innerText = "Confirmar y Entrar"; btn.disabled = false; }
 });
 
-// --- LOBBY ---
+// --- LOBBY (CON FUNCIONES DE ADMIN) ---
 function entrarLobby(id, data, soyAdmin) {
     salaActualId = id;
     irA('lobby');
@@ -409,7 +398,6 @@ function entrarLobby(id, data, soyAdmin) {
         msg.style.display = 'block';
     }
 
-    // AQUI INICIAMOS EL TIMER
     iniciarTimer(data.fechaTarget);
 
     if(unsuscribeLobby) unsuscribeLobby();
@@ -421,8 +409,22 @@ function entrarLobby(id, data, soyAdmin) {
         
         const lista = document.getElementById('listaParticipantes');
         lista.innerHTML = '';
+        
+        // --- RENDERIZADO DE LA LISTA DE PARTICIPANTES ---
         info.participantes.forEach(p => {
-            lista.innerHTML += `<div class="clean-card" style="padding:10px 16px; margin-bottom:8px;">🎅 ${p.nombre}</div>`;
+            let botonKick = '';
+            
+            // Si soy Admin y el evento NO ha cerrado, muestro botón de expulsar
+            if(soyAdmin && info.estado !== 'cerrada') {
+                botonKick = `<button class="btn-kick" onclick="expulsarParticipante('${p.nombre}')" title="Expulsar">×</button>`;
+            }
+
+            lista.innerHTML += `
+                <div class="participant-row">
+                    <span style="font-weight:500;">🎅 ${p.nombre}</span>
+                    ${botonKick}
+                </div>
+            `;
         });
 
         if(info.estado === 'cerrada' && info.resultados) {
@@ -438,29 +440,43 @@ function entrarLobby(id, data, soyAdmin) {
     });
 }
 
-// --- TEMPORIZADOR CORREGIDO ---
+// --- FUNCIÓN PARA EXPULSAR PARTICIPANTE ---
+window.expulsarParticipante = (nombreAExpulsar) => {
+    confirmar(`¿Sacar a ${nombreAExpulsar} del evento?`, async () => {
+        try {
+            const docRef = doc(db, "posadas", salaActualId);
+            const snap = await getDoc(docRef);
+            if (!snap.exists()) return;
+
+            const datos = snap.data();
+            
+            // Filtramos la lista para quitar al usuario
+            const nuevaLista = datos.participantes.filter(p => p.nombre !== nombreAExpulsar);
+
+            await updateDoc(docRef, { participantes: nuevaLista });
+            notificar(`${nombreAExpulsar} ha sido eliminado.`);
+        } catch (e) {
+            console.error(e);
+            notificar("Error al eliminar usuario");
+        }
+    });
+};
+
 function iniciarTimer(fecha) {
     if(timerInterval) clearInterval(timerInterval);
     const display = document.getElementById('timerDisplay');
     
-    // Si no hay fecha, no hacemos nada
-    if(!fecha) {
-        display.innerText = "Sin fecha";
-        return;
-    }
+    if(!fecha) { display.innerText = "Sin fecha"; return; }
 
     const target = new Date(fecha).getTime();
 
-    // Función que calcula y pinta el tiempo
     const actualizar = () => {
         const now = new Date().getTime();
         const dist = target - now;
         
         if (dist < 0) {
-            display.innerText = "¡Es hoy!"; 
-            display.style.color = "var(--accent)";
-            clearInterval(timerInterval); 
-            return;
+            display.innerText = "¡Es hoy!"; display.style.color = "var(--accent)";
+            clearInterval(timerInterval); return;
         }
         
         const d = Math.floor(dist / (1000 * 60 * 60 * 24));
@@ -470,10 +486,7 @@ function iniciarTimer(fecha) {
         display.innerText = `${d}d ${h}h ${m}m`;
     };
 
-    // 1. Ejecutar INMEDIATAMENTE (para quitar los guiones)
     actualizar();
-    
-    // 2. Luego repetir cada segundo
     timerInterval = setInterval(actualizar, 1000);
 }
 
@@ -578,6 +591,28 @@ function mostrarResultado(destino) {
     irA('resultado');
     document.getElementById('resNombreDestino').innerText = destino.nombre;
     document.getElementById('resDeseoDestino').innerText = destino.deseo;
+
+    // EFECTO CONFETI (Si está cargado)
+    if (window.confetti) {
+        var end = Date.now() + 3000;
+        (function frame() {
+            confetti({
+                particleCount: 5,
+                angle: 60,
+                spread: 55,
+                origin: { x: 0 },
+                colors: ['#D4AF37', '#bb0000', '#ffffff']
+            });
+            confetti({
+                particleCount: 5,
+                angle: 120,
+                spread: 55,
+                origin: { x: 1 },
+                colors: ['#D4AF37', '#bb0000', '#ffffff']
+            });
+            if (Date.now() < end) requestAnimationFrame(frame);
+        }());
+    }
 }
 
 const btnEliminar = document.getElementById('btnEliminarEventoFinal');
