@@ -262,16 +262,23 @@ window.eliminarEventoExterno = (id) => {
     });
 };
 
+
 // --- CREAR SALA ---
 const modalCrear = document.getElementById('modalCrearPosada');
-const btnAbrirModal = document.getElementById('btnAbrirModal');
-if(btnAbrirModal) {
-    btnAbrirModal.addEventListener('click', () => {
-        document.getElementById('newNombre').value = "";
-        document.getElementById('newFecha').value = "";
-        if(modalCrear) modalCrear.style.display = 'flex';
-    });
-}
+document.getElementById('btnAbrirModal')?.addEventListener('click', () => {
+    document.getElementById('newNombre').value = "";
+    
+    const inputFecha = document.getElementById('newFecha');
+    inputFecha.value = "";
+    
+    // --- LÓGICA PARA BLOQUEAR FECHAS PASADAS ---
+    const now = new Date();
+    now.setMinutes(now.getMinutes() - now.getTimezoneOffset()); // Ajustar a tu zona horaria local
+    inputFecha.min = now.toISOString().slice(0, 16); // Formato exacto para datetime-local
+    // -------------------------------------------
+
+    if(modalCrear) modalCrear.style.display = 'flex';
+});
 
 const btnCancelarModal = document.getElementById('btnCancelarModal');
 if(btnCancelarModal) {
