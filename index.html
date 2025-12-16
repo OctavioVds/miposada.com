@@ -82,6 +82,9 @@
         <div class="lobby-header-card">
            <h2 id="lobbyNombreSala">Evento</h2>
            <div id="lobbyCodigo" class="code-badge">----</div>
+           
+           <div id="lobbyInfoExtra"></div>
+           
            <div style="margin-top:16px; font-size:2rem; font-weight:800; color:#1F2937" id="lobbyContador">0/0</div>
         </div>
         
@@ -139,6 +142,17 @@
         <div class="field">
             <label>Fecha</label>
             <input type="datetime-local" id="newFecha">
+        </div>
+        
+        <div style="display:flex; gap:10px;">
+            <div class="field" style="flex:1;">
+                <label>Lugar 📍</label>
+                <input type="text" id="newLugar" placeholder="Ej. Casa de..." autocomplete="off">
+            </div>
+            <div class="field" style="flex:1;">
+                <label>Costo $</label>
+                <input type="number" id="newCosto" placeholder="Ej. 500">
+            </div>
         </div>
         <div class="field">
             <label>Capacidad</label>

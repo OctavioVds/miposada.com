@@ -228,10 +228,12 @@ window.eliminarEventoExterno = (id) => {
     });
 };
 
-// --- CREAR SALA ---
+// --- CREAR SALA (MODIFICADO: LUGAR Y COSTO) ---
 const modalCrear = document.getElementById('modalCrearPosada');
 document.getElementById('btnAbrirModal')?.addEventListener('click', () => {
     document.getElementById('newNombre').value = "";
+    document.getElementById('newLugar').value = ""; // Limpiar
+    document.getElementById('newCosto').value = ""; // Limpiar
     const fechaInput = document.getElementById('newFecha');
     fechaInput.value = "";
     
@@ -250,6 +252,10 @@ document.getElementById('btnConfirmarCrear')?.addEventListener('click', async ()
     const nombre = document.getElementById('newNombre').value.trim();
     const fecha = document.getElementById('newFecha').value;
     const max = document.getElementById('newMax').value;
+    // NUEVOS VALORES
+    const lugar = document.getElementById('newLugar').value.trim();
+    const costo = document.getElementById('newCosto').value.trim();
+    
     const btn = document.getElementById('btnConfirmarCrear');
 
     if(!nombre || !fecha || !max) return notificar("Faltan datos");
@@ -259,9 +265,16 @@ document.getElementById('btnConfirmarCrear')?.addEventListener('click', async ()
     try {
         const codigo = Math.random().toString(36).substring(2, 6).toUpperCase();
         await addDoc(collection(db, "posadas"), {
-            nombre, fechaTarget: fecha, maxParticipantes: parseInt(max),
-            codigo, creadorEmail: usuarioActual.email, estado: 'abierta',
-            participantes: [], resultados: {}
+            nombre, 
+            fechaTarget: fecha, 
+            maxParticipantes: parseInt(max),
+            lugar: lugar || "Por definir", // Guardar
+            costo: costo || "Libre",       // Guardar
+            codigo, 
+            creadorEmail: usuarioActual.email, 
+            estado: 'abierta',
+            participantes: [], 
+            resultados: {}
         });
         if(modalCrear) modalCrear.style.display = 'none';
         notificar("¡Evento creado!");
@@ -365,7 +378,7 @@ document.getElementById('formRegistro')?.addEventListener('submit', async (e) =>
     finally { btn.innerText = "Confirmar y Entrar"; btn.disabled = false; }
 });
 
-// --- LOBBY (CON FUNCIONES DE ADMIN) ---
+// --- LOBBY (MODIFICADO: MOSTRAR INFO) ---
 function entrarLobby(id, data, soyAdmin) {
     salaActualId = id;
     irA('lobby');
@@ -373,6 +386,16 @@ function entrarLobby(id, data, soyAdmin) {
     document.getElementById('lobbyNombreSala').innerText = data.nombre;
     document.getElementById('lobbyCodigo').innerText = data.codigo;
     
+    // MOSTRAR LUGAR Y COSTO
+    const infoExtra = document.getElementById('lobbyInfoExtra');
+    if(infoExtra) {
+        infoExtra.innerHTML = `
+            <div style="margin-top:10px; font-size:0.9rem; color:#555; background:rgba(255,255,255,0.6); padding:8px; border-radius:12px;">
+                📍 ${data.lugar || 'Por definir'} <span style="margin:0 8px; color:#CCC;">|</span> 💰 $${data.costo || 'Libre'}
+            </div>
+        `;
+    }
+
     const panel = document.getElementById('panelAdminControls');
     const msg = document.getElementById('msgEspera');
     
@@ -410,19 +433,10 @@ function entrarLobby(id, data, soyAdmin) {
         const lista = document.getElementById('listaParticipantes');
         lista.innerHTML = '';
         
-        // --- RENDERIZADO DE LA LISTA DE PARTICIPANTES ---
         info.participantes.forEach(p => {
-            let botonKick = '';
-            
-            // Si soy Admin y el evento NO ha cerrado, muestro botón de expulsar
-            if(soyAdmin && info.estado !== 'cerrada') {
-                botonKick = `<button class="btn-kick" onclick="expulsarParticipante('${p.nombre}')" title="Expulsar">×</button>`;
-            }
-
             lista.innerHTML += `
-                <div class="participant-row">
+                <div class="participant-row" style="display:flex; justify-content:space-between; align-items:center; padding:12px 16px; background:white; border-radius:16px; margin-bottom:8px; border:1px solid #F0F0F0;">
                     <span style="font-weight:500;">🎅 ${p.nombre}</span>
-                    ${botonKick}
                 </div>
             `;
         });
@@ -439,28 +453,6 @@ function entrarLobby(id, data, soyAdmin) {
         }
     });
 }
-
-// --- FUNCIÓN PARA EXPULSAR PARTICIPANTE ---
-window.expulsarParticipante = (nombreAExpulsar) => {
-    confirmar(`¿Sacar a ${nombreAExpulsar} del evento?`, async () => {
-        try {
-            const docRef = doc(db, "posadas", salaActualId);
-            const snap = await getDoc(docRef);
-            if (!snap.exists()) return;
-
-            const datos = snap.data();
-            
-            // Filtramos la lista para quitar al usuario
-            const nuevaLista = datos.participantes.filter(p => p.nombre !== nombreAExpulsar);
-
-            await updateDoc(docRef, { participantes: nuevaLista });
-            notificar(`${nombreAExpulsar} ha sido eliminado.`);
-        } catch (e) {
-            console.error(e);
-            notificar("Error al eliminar usuario");
-        }
-    });
-};
 
 function iniciarTimer(fecha) {
     if(timerInterval) clearInterval(timerInterval);
@@ -591,28 +583,6 @@ function mostrarResultado(destino) {
     irA('resultado');
     document.getElementById('resNombreDestino').innerText = destino.nombre;
     document.getElementById('resDeseoDestino').innerText = destino.deseo;
-
-    // EFECTO CONFETI (Si está cargado)
-    if (window.confetti) {
-        var end = Date.now() + 3000;
-        (function frame() {
-            confetti({
-                particleCount: 5,
-                angle: 60,
-                spread: 55,
-                origin: { x: 0 },
-                colors: ['#D4AF37', '#bb0000', '#ffffff']
-            });
-            confetti({
-                particleCount: 5,
-                angle: 120,
-                spread: 55,
-                origin: { x: 1 },
-                colors: ['#D4AF37', '#bb0000', '#ffffff']
-            });
-            if (Date.now() < end) requestAnimationFrame(frame);
-        }());
-    }
 }
 
 const btnEliminar = document.getElementById('btnEliminarEventoFinal');
