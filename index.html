@@ -6,14 +6,12 @@
   
   <meta property="og:title" content="🎄 Intercambio Navideño">
   <meta property="og:description" content="Organiza tu sorteo de regalos fácil y rápido. ¡Entra aquí!">
-  <meta property="og:image" content="https://img.icons8.com/color/480/christmas-gift.png">
   
   <title>Intercambio Navideño</title>
   
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
@@ -67,18 +65,15 @@
         <p class="subtitle">Entrando a <strong id="lblNombreSala" style="color:var(--accent)">...</strong></p>
         <form id="formRegistro">
           <div class="field">
-            <label>¿Cómo te llamas?</label>
-            <input type="text" id="regNombre" required autocomplete="off" placeholder="Tu nombre">
+            <label>Nombre y Apellido</label>
+            <input type="text" id="regNombre" required autocomplete="off" placeholder="Ej. Juan Pérez">
+            <small style="color:#AAA; font-size:0.75rem; margin-top:4px; display:block;">Úsalo igual si quieres volver a entrar después.</small>
           </div>
           <div class="field">
-            <label>Tu correo</label>
-            <input type="email" id="regEmail" required autocomplete="off" placeholder="nombre@correo.com">
+            <label>¿Qué te gustaría de regalo?</label>
+            <input type="text" id="regDeseo" required autocomplete="off" placeholder="Ej: Libro, Taza, Calcetines...">
           </div>
-          <div class="field">
-            <label>Sugerencia de regalo</label>
-            <input type="text" id="regDeseo" required autocomplete="off" placeholder="Ej: Libro, Taza...">
-          </div>
-          <button type="submit" class="btn-primary" id="btnSubmitRegistro">Entrar</button>
+          <button type="submit" class="btn-primary" id="btnSubmitRegistro">Confirmar y Entrar</button>
         </form>
       </div>
 
@@ -102,8 +97,8 @@
         <div id="panelAdminControls" style="display: none;">
             <div class="divider"></div>
             
-            <button id="btnPreSorteo" class="btn-accent" style="width:100%;">Forzar Sorteo Ahora</button>
-            <p style="font-size:0.75rem; color:#A0A0A0; text-align:center; margin-top:8px;">(El sorteo es automático al llenarse)</p>
+            <button id="btnPreSorteo" class="btn-accent" style="width:100%;">Realizar Sorteo</button>
+            <p style="font-size:0.75rem; color:#A0A0A0; text-align:center; margin-top:8px;">(Se activará automáticamente al llenarse)</p>
             
             <div id="adminResultadosList" style="display:none;">
                 <label class="section-label" style="text-align:center; margin-top:24px;">Resultados Generados</label>
@@ -113,20 +108,20 @@
             <button id="btnEliminarEventoFinal" class="btn-danger">Eliminar Evento</button>
         </div>
 
-        <p id="msgEspera" style="text-align:center; color:#A0A0A0; margin-top:32px; font-style:italic;">Esperando participantes...</p>
+        <p id="msgEspera" style="text-align:center; color:#A0A0A0; margin-top:32px; font-style:italic;">Esperando a que inicie el sorteo...</p>
       </div>
 
       <div id="vistaResultado" style="display: none;" class="view-section fade-in centered-content">
-          <h2 style="color:var(--accent); margin-bottom:10px;">¡Sorteo Listo!</h2>
+          <h2 style="color:var(--accent); margin-bottom:10px;">¡Ya tienes pareja!</h2>
           <div class="result-reveal-card">
               <p class="subtitle">Te tocó regalarle a:</p>
               <h1 id="resNombreDestino" style="font-size:2.2rem; margin:10px 0; line-height:1.1;">...</h1>
               <div class="gift-divider">🎁</div>
-              <p style="font-weight:700; color:#AAAAAA; font-size:0.8rem; text-transform:uppercase;">Quiere:</p>
+              <p style="font-weight:700; color:#AAAAAA; font-size:0.8rem; text-transform:uppercase;">Su deseo es:</p>
               <p id="resDeseoDestino" style="font-size:1.3rem; color:#333; font-style:italic; font-weight:600;">...</p>
           </div>
           <p style="font-size: 0.8rem; color: #888; margin-top: 24px;">
-              Enviamos un correo de confirmación. 🤫
+              ¡No le digas a nadie! 🤫
           </p>
       </div>
 

@@ -17,15 +17,6 @@ const firebaseConfig = {
   appId: "1:367576712970:web:51f77ff6ea7b8d83de1cf3"
 };
 
-// --- EMAILJS (OPCIONAL, YA NO ES CRÍTICO) ---
-const SERVICE_ID = "service_ao73611"; 
-const TEMPLATE_ID = "template_dp7jafi"; 
-const PUBLIC_KEY = "l-_4LrQW8pN7F7MiK"; 
-
-try {
-    if(window.emailjs) window.emailjs.init(PUBLIC_KEY);
-} catch (e) { console.log("Modo sin correos activo"); }
-
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
@@ -66,7 +57,7 @@ function confirmar(mensaje, accionSi) {
     nuevoNo.addEventListener('click', () => { modal.style.display = 'none'; });
 }
 
-// --- HISTORIAL ---
+// --- HISTORIAL (LOGIN AUTOMÁTICO) ---
 function guardarSesionLocal(codigo, nombre) {
     localStorage.setItem('evento_' + codigo, nombre);
     verificarHistorial();
@@ -140,7 +131,7 @@ document.getElementById('btnAtras')?.addEventListener('click', () => {
     if(unsuscribeLobby) unsuscribeLobby();
 });
 
-// --- AUTH ---
+// --- AUTH (ADMIN) ---
 let usuarioActual = null;
 let salaActualId = null;
 let miNombreEnSala = null;
@@ -175,7 +166,7 @@ document.getElementById('btnLogout')?.addEventListener('click', () => {
     confirmar("¿Quieres cerrar sesión?", () => signOut(auth));
 });
 
-// --- DASHBOARD ---
+// --- DASHBOARD ADMIN ---
 function activarDashboard() {
     if(!usuarioActual) return;
     const lista = document.getElementById('listaMisPosadas');
@@ -245,6 +236,7 @@ document.getElementById('btnAbrirModal')?.addEventListener('click', () => {
     const fechaInput = document.getElementById('newFecha');
     fechaInput.value = "";
     
+    // Bloquear fechas pasadas
     const now = new Date();
     now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
     fechaInput.min = now.toISOString().slice(0, 16);
@@ -264,8 +256,7 @@ document.getElementById('btnConfirmarCrear')?.addEventListener('click', async ()
 
     if(!nombre || !fecha || !max) return notificar("Faltan datos");
 
-    btn.innerText = "Creando..."; 
-    btn.disabled = true;
+    btn.innerText = "Creando..."; btn.disabled = true;
 
     try {
         const codigo = Math.random().toString(36).substring(2, 6).toUpperCase();
@@ -277,13 +268,10 @@ document.getElementById('btnConfirmarCrear')?.addEventListener('click', async ()
         if(modalCrear) modalCrear.style.display = 'none';
         notificar("¡Evento creado!");
     } catch (e) { notificar("Error al crear"); } 
-    finally { 
-        btn.innerText = "Crear"; 
-        btn.disabled = false; 
-    }
+    finally { btn.innerText = "Crear"; btn.disabled = false; }
 });
 
-// --- UNIRSE ---
+// --- UNIRSE A SALA ---
 document.getElementById('btnIrASala')?.addEventListener('click', () => {
     const codigoInput = document.getElementById('inputCodigoHome');
     if(!codigoInput) return;
@@ -332,57 +320,58 @@ async function intentarUnirse(codigo, nombreAutenticado) {
     }
 }
 
+// --- REGISTRO SIN EMAIL ---
 document.getElementById('formRegistro')?.addEventListener('submit', async (e) => {
     e.preventDefault();
     const btn = document.getElementById('btnSubmitRegistro');
     
     const nombre = document.getElementById('regNombre').value.trim();
-    const email = document.getElementById('regEmail').value.trim();
     const deseo = document.getElementById('regDeseo').value.trim();
 
-    if(!email.includes('@')) return notificar("Correo inválido");
+    if(nombre.length < 3) return notificar("Escribe tu nombre completo");
 
-    btn.innerText = "Validando..."; btn.disabled = true;
+    btn.innerText = "Entrando..."; btn.disabled = true;
 
     try {
         const salaRef = doc(db, "posadas", salaActualId);
         const snap = await getDoc(salaRef);
         const data = snap.data();
 
-        const usuarioExistente = data.participantes.find(p => p.nombre.toLowerCase() === nombre.toLowerCase());
+        // VALIDACIÓN: ¿Ya existe este nombre exacto?
+        const existe = data.participantes.find(p => p.nombre.toLowerCase() === nombre.toLowerCase());
         
-        if (usuarioExistente) {
-            if (usuarioExistente.email.toLowerCase() === email.toLowerCase()) {
-                notificar("¡Bienvenido de nuevo!");
-                guardarSesionLocal(data.codigo, nombre);
-                miNombreEnSala = nombre;
-                entrarLobby(salaActualId, data, false);
-                return;
-            } else {
-                notificar(`El nombre '${nombre}' ya está ocupado.`);
-                btn.innerText = "Entrar"; btn.disabled = false;
-                return;
-            }
+        if (existe) {
+            // Si ya existe, asumimos que eres tú (LOGIN)
+            notificar("¡Te encontramos! Entrando...");
+            guardarSesionLocal(data.codigo, nombre);
+            miNombreEnSala = nombre;
+            entrarLobby(salaActualId, data, false);
+            return;
         }
 
-        if(data.estado === 'cerrada') return notificar("El sorteo ya cerró");
+        if(data.estado === 'cerrada') return notificar("El sorteo ya cerró, no puedes registrarte");
         if(data.participantes.length >= data.maxParticipantes) return notificar("Sala llena");
 
-        await updateDoc(salaRef, { participantes: arrayUnion({ nombre, email, deseo }) });
+        // SI NO EXISTE -> REGISTRAR NUEVO
+        await updateDoc(salaRef, { 
+            participantes: arrayUnion({ nombre, deseo }) // Solo guardamos Nombre y Deseo
+        });
+        
         guardarSesionLocal(data.codigo, nombre);
         miNombreEnSala = nombre;
 
+        // Auto-sorteo si se llena
         const snapFinal = await getDoc(salaRef);
         const dataFinal = snapFinal.data();
         if(dataFinal.participantes.length === dataFinal.maxParticipantes && dataFinal.estado === 'abierta') {
-            notificar("¡Sala llena! Sorteando...");
+            notificar("¡Sala llena! Realizando sorteo...");
             realizarSorteo(true);
         }
 
         entrarLobby(salaActualId, dataFinal, false);
 
     } catch (e) { notificar("Error al entrar"); }
-    finally { btn.innerText = "Entrar"; btn.disabled = false; }
+    finally { btn.innerText = "Confirmar y Entrar"; btn.disabled = false; }
 });
 
 // --- LOBBY ---
@@ -403,13 +392,12 @@ function entrarLobby(id, data, soyAdmin) {
         const btnSorteo = document.getElementById('btnPreSorteo');
         const resultadosList = document.getElementById('adminResultadosList');
         
-        // MOSTRAR RESULTADOS SI YA ACABÓ
         if(data.estado === 'cerrada') {
             btnSorteo.style.display = 'none';
             resultadosList.style.display = 'block';
             renderResultados(data.resultados);
             
-            // --- NUEVO: BOTÓN DE COMPARTIR WHATSAPP ---
+            // Botón compartir WhatsApp
             mostrarBotonCompartir(data.codigo);
         } else {
             btnSorteo.style.display = 'block';
@@ -455,28 +443,25 @@ function mostrarBotonCompartir(codigo) {
         btn = document.createElement('button');
         btn.id = 'btnShareWhatsapp';
         btn.className = 'btn-primary';
-        btn.style.backgroundColor = '#25D366'; // Verde WhatsApp
+        btn.style.backgroundColor = '#25D366';
         btn.style.marginTop = '20px';
         btn.innerHTML = `
             <div style="display:flex; align-items:center; justify-content:center; gap:10px;">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
-                Invitar / Anunciar
+                Compartir Resultados
             </div>
         `;
         
         btn.onclick = () => {
-            const url = window.location.href.split('?')[0]; // URL limpia
+            const url = window.location.href.split('?')[0]; 
             const mensaje = `🎁 *¡Ya está el Intercambio!* 🎄\n\nEntra aquí para ver quién te tocó:\n${url}\n\nCódigo de sala: *${codigo}*`;
             
-            // Copiar al portapapeles
             navigator.clipboard.writeText(mensaje).then(() => {
-                notificar("¡Texto copiado! Pégalo en WhatsApp 📲");
-                // Intentar abrir WhatsApp Web
+                notificar("¡Texto copiado! Pégalo en WhatsApp");
                 window.open(`https://wa.me/?text=${encodeURIComponent(mensaje)}`, '_blank');
             });
         };
         
-        // Insertar después del divisor
         container.insertBefore(btn, container.lastElementChild);
     }
 }
@@ -486,7 +471,14 @@ function ocultarBotonCompartir() {
     if(btn) btn.remove();
 }
 
-// --- SORTEO (ESTRATEGIA HÍBRIDA) ---
+const btnPreSorteo = document.getElementById('btnPreSorteo');
+if(btnPreSorteo) {
+    btnPreSorteo.addEventListener('click', () => {
+        confirmar("¿Forzar sorteo ahora?", () => realizarSorteo(false));
+    });
+}
+
+// --- SORTEO SIMPLE (SIN CORREOS) ---
 async function realizarSorteo(esAutomatico) {
     const btn = document.getElementById('btnPreSorteo');
     if(btn) { btn.innerText = "Sorteando..."; btn.disabled = true; }
@@ -497,7 +489,7 @@ async function realizarSorteo(esAutomatico) {
         const parts = snap.data().participantes;
 
         if(parts.length < 2) {
-            if(!esAutomatico) notificar("Faltan participantes");
+            if(!esAutomatico) notificar("Se necesitan mínimo 2 personas");
             if(btn) { btn.innerText = "Forzar Sorteo"; btn.disabled = false; }
             return;
         }
@@ -509,30 +501,17 @@ async function realizarSorteo(esAutomatico) {
             const giver = givers[i];
             const receiver = givers[(i+1) % givers.length];
             asignaciones[giver.nombre] = receiver;
-
-            // INTENTO DE CORREO (NO BLOQUEANTE)
-            if(window.emailjs && giver.email && giver.email.includes('@')) {
-                // Sin await para que no frene la base de datos
-                emailjs.send(SERVICE_ID, TEMPLATE_ID, {
-                    to_name: giver.nombre,
-                    to_email: giver.email,
-                    target_name: receiver.nombre,
-                    target_wish: receiver.deseo
-                }, PUBLIC_KEY).catch(e => console.log("Fallo envío silencioso", e));
-            }
         }
 
-        // GUARDAR RESULTADOS (LO MÁS IMPORTANTE)
         await updateDoc(docRef, { estado: 'cerrada', resultados: asignaciones });
         
         if(!esAutomatico) {
             notificar("¡Sorteo Listo!", 5000);
-            mostrarBotonCompartir(snap.data().codigo); // Mostrar botón WhatsApp
+            mostrarBotonCompartir(snap.data().codigo);
         }
 
     } catch (e) { 
-        console.error(e);
-        notificar("Error crítico en base de datos"); 
+        notificar("Error en el sorteo"); 
         if(btn) { btn.innerText = "Forzar Sorteo"; btn.disabled = false; }
     }
 }
@@ -567,6 +546,25 @@ if(btnEliminar) {
             irA('home');
         });
     });
+}
+
+function iniciarTimer(fecha) {
+    if(timerInterval) clearInterval(timerInterval);
+    const display = document.getElementById('timerDisplay');
+    const target = new Date(fecha).getTime();
+
+    timerInterval = setInterval(() => {
+        const now = new Date().getTime();
+        const dist = target - now;
+        if (dist < 0) {
+            display.innerText = "¡Es hoy!"; display.style.color = "var(--accent)";
+            clearInterval(timerInterval); return;
+        }
+        const d = Math.floor(dist / (1000 * 60 * 60 * 24));
+        const h = Math.floor((dist % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        const m = Math.floor((dist % (1000 * 60 * 60)) / (1000 * 60));
+        display.innerText = `${d}d ${h}h ${m}m`;
+    }, 1000);
 }
 
 verificarHistorial();
