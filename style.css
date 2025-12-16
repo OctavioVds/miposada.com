@@ -82,3 +82,9 @@ button { cursor: pointer; font-family: inherit; }
 
 #toast-container { position: fixed; top: 20px; right: 20px; z-index: 3000; }
 .toast { background: white; padding: 16px 24px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); font-weight: 600; margin-bottom: 10px; border-left: 4px solid var(--accent); }
+
+/* ... (El resto de tu CSS igual) ... */
+
+/* AGREGAR ESTO AL FINAL SI NO LO TIENES */
+.status-dot { width: 8px; height: 8px; border-radius: 50%; background: #D4AF37; display: inline-block; }
+.status-finished { width: 8px; height: 8px; border-radius: 50%; background: #10B981; display: inline-block; }
