@@ -17,18 +17,18 @@ const firebaseConfig = {
   appId: "1:367576712970:web:51f77ff6ea7b8d83de1cf3"
 };
 
-// --- CONFIGURACIÓN EMAILJS (CONFIRMADAS) ---
+// --- CONFIGURACIÓN EMAILJS (TUS CLAVES) ---
 const EMAIL_SERVICE_ID = "service_ao73611"; 
 const EMAIL_TEMPLATE_ID = "template_dp7jafi"; 
 const EMAIL_PUBLIC_KEY = "l-_4LrQW8pN7F7MiK"; 
 
-// Inicializar EmailJS con reporte de estado
+// Inicialización de seguridad
 try {
     if(window.emailjs) {
         window.emailjs.init(EMAIL_PUBLIC_KEY);
-        console.log("EmailJS iniciado correctamente ✅");
+        console.log("Sistema de correos listo ✅");
     }
-} catch (e) { console.error("Error iniciando EmailJS", e); }
+} catch (e) { console.warn("No se pudo iniciar EmailJS automáticamente", e); }
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
@@ -51,7 +51,8 @@ function notificar(msg) {
     
     toast.animate([{ opacity:0, transform:'translateY(-10px)' }, { opacity:1, transform:'translateY(0)' }], { duration: 300 });
     setTimeout(() => {
-        toast.animate([{ opacity:1 }, { opacity:0 }], { duration: 300 }).onfinish = () => toast.remove();
+        const anim = toast.animate([{ opacity:1 }, { opacity:0 }], { duration: 300 });
+        anim.onfinish = () => toast.remove();
     }, 3000);
 }
 
@@ -114,7 +115,8 @@ function verificarHistorial() {
 }
 
 window.reunirseRapido = async (codigo, nombre) => {
-    document.getElementById('inputCodigoHome').value = codigo;
+    const input = document.getElementById('inputCodigoHome');
+    if(input) input.value = codigo;
     await intentarUnirse(codigo, nombre); 
 };
 
@@ -453,7 +455,7 @@ document.getElementById('btnPreSorteo')?.addEventListener('click', () => {
     confirmar("¿Forzar sorteo ahora?", () => realizarSorteo(false));
 });
 
-// --- LÓGICA DE CORREO REFORZADA ---
+// --- CORRECCIÓN DE CORREO: PASAR LA PUBLIC KEY EXPLÍCITAMENTE ---
 async function realizarSorteo(esAutomatico) {
     try {
         const docRef = doc(db, "posadas", salaActualId);
@@ -468,35 +470,31 @@ async function realizarSorteo(esAutomatico) {
         let givers = [...parts].sort(() => Math.random() - 0.5);
         let asignaciones = {};
         
-        // Loop para asignar y enviar correos
         for(let i=0; i<givers.length; i++) {
             const giver = givers[i];
             const receiver = givers[(i+1) % givers.length];
             asignaciones[giver.nombre] = receiver;
 
-            // Enviar Correo con LOGGING y retraso ligero
+            // Enviar Correo con la KEY EXPLÍCITA (Esto arregla el error 400)
             if(window.emailjs) {
-                // Pequeña pausa para no saturar la API gratuita
-                await new Promise(r => setTimeout(r, 500)); 
+                // Pequeña pausa de seguridad
+                await new Promise(r => setTimeout(r, 400));
                 
                 emailjs.send(EMAIL_SERVICE_ID, EMAIL_TEMPLATE_ID, {
                     to_name: giver.nombre,
                     to_email: giver.email,
                     target_name: receiver.nombre,
                     target_wish: receiver.deseo
-                })
-                .then(() => console.log(`✅ Correo enviado a ${giver.email}`))
-                .catch((err) => console.error(`❌ Error enviando a ${giver.email}`, err));
+                }, EMAIL_PUBLIC_KEY) // <--- ¡AQUÍ ESTABA LA CLAVE DEL ERROR!
+                .then(() => console.log(`✅ Correo OK para ${giver.email}`))
+                .catch(e => console.error(`❌ Error correo ${giver.email}`, e));
             }
         }
 
         await updateDoc(docRef, { estado: 'cerrada', resultados: asignaciones });
-        if(!esAutomatico) notificar("Sorteo realizado y correos enviados");
+        if(!esAutomatico) notificar("Sorteo realizado");
 
-    } catch (e) { 
-        console.error(e);
-        notificar("Error en el sorteo"); 
-    }
+    } catch (e) { notificar("Error en el sorteo"); }
 }
 
 function renderResultados(resultados) {
