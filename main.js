@@ -57,7 +57,7 @@ function confirmar(mensaje, accionSi) {
     nuevoNo.addEventListener('click', () => { modal.style.display = 'none'; });
 }
 
-// --- HISTORIAL (LOGIN AUTOMÁTICO) ---
+// --- HISTORIAL ---
 function guardarSesionLocal(codigo, nombre) {
     localStorage.setItem('evento_' + codigo, nombre);
     verificarHistorial();
@@ -131,7 +131,7 @@ document.getElementById('btnAtras')?.addEventListener('click', () => {
     if(unsuscribeLobby) unsuscribeLobby();
 });
 
-// --- AUTH (ADMIN) ---
+// --- AUTH ---
 let usuarioActual = null;
 let salaActualId = null;
 let miNombreEnSala = null;
@@ -166,7 +166,7 @@ document.getElementById('btnLogout')?.addEventListener('click', () => {
     confirmar("¿Quieres cerrar sesión?", () => signOut(auth));
 });
 
-// --- DASHBOARD ADMIN ---
+// --- DASHBOARD ---
 function activarDashboard() {
     if(!usuarioActual) return;
     const lista = document.getElementById('listaMisPosadas');
@@ -256,7 +256,8 @@ document.getElementById('btnConfirmarCrear')?.addEventListener('click', async ()
 
     if(!nombre || !fecha || !max) return notificar("Faltan datos");
 
-    btn.innerText = "Creando..."; btn.disabled = true;
+    btn.innerText = "Creando..."; 
+    btn.disabled = true;
 
     try {
         const codigo = Math.random().toString(36).substring(2, 6).toUpperCase();
@@ -268,10 +269,13 @@ document.getElementById('btnConfirmarCrear')?.addEventListener('click', async ()
         if(modalCrear) modalCrear.style.display = 'none';
         notificar("¡Evento creado!");
     } catch (e) { notificar("Error al crear"); } 
-    finally { btn.innerText = "Crear"; btn.disabled = false; }
+    finally { 
+        btn.innerText = "Crear"; 
+        btn.disabled = false; 
+    }
 });
 
-// --- UNIRSE A SALA ---
+// --- UNIRSE ---
 document.getElementById('btnIrASala')?.addEventListener('click', () => {
     const codigoInput = document.getElementById('inputCodigoHome');
     if(!codigoInput) return;
@@ -320,7 +324,7 @@ async function intentarUnirse(codigo, nombreAutenticado) {
     }
 }
 
-// --- REGISTRO SIN EMAIL ---
+// --- REGISTRO SIN CORREO ---
 document.getElementById('formRegistro')?.addEventListener('submit', async (e) => {
     e.preventDefault();
     const btn = document.getElementById('btnSubmitRegistro');
@@ -328,7 +332,7 @@ document.getElementById('formRegistro')?.addEventListener('submit', async (e) =>
     const nombre = document.getElementById('regNombre').value.trim();
     const deseo = document.getElementById('regDeseo').value.trim();
 
-    if(nombre.length < 3) return notificar("Escribe tu nombre completo");
+    if(nombre.length < 3) return notificar("Nombre muy corto");
 
     btn.innerText = "Entrando..."; btn.disabled = true;
 
@@ -337,11 +341,10 @@ document.getElementById('formRegistro')?.addEventListener('submit', async (e) =>
         const snap = await getDoc(salaRef);
         const data = snap.data();
 
-        // VALIDACIÓN: ¿Ya existe este nombre exacto?
+        // Verificar por nombre exacto
         const existe = data.participantes.find(p => p.nombre.toLowerCase() === nombre.toLowerCase());
         
         if (existe) {
-            // Si ya existe, asumimos que eres tú (LOGIN)
             notificar("¡Te encontramos! Entrando...");
             guardarSesionLocal(data.codigo, nombre);
             miNombreEnSala = nombre;
@@ -349,22 +352,21 @@ document.getElementById('formRegistro')?.addEventListener('submit', async (e) =>
             return;
         }
 
-        if(data.estado === 'cerrada') return notificar("El sorteo ya cerró, no puedes registrarte");
+        if(data.estado === 'cerrada') return notificar("El sorteo ya cerró");
         if(data.participantes.length >= data.maxParticipantes) return notificar("Sala llena");
 
-        // SI NO EXISTE -> REGISTRAR NUEVO
+        // Registrar
         await updateDoc(salaRef, { 
-            participantes: arrayUnion({ nombre, deseo }) // Solo guardamos Nombre y Deseo
+            participantes: arrayUnion({ nombre, deseo }) 
         });
         
         guardarSesionLocal(data.codigo, nombre);
         miNombreEnSala = nombre;
 
-        // Auto-sorteo si se llena
         const snapFinal = await getDoc(salaRef);
         const dataFinal = snapFinal.data();
         if(dataFinal.participantes.length === dataFinal.maxParticipantes && dataFinal.estado === 'abierta') {
-            notificar("¡Sala llena! Realizando sorteo...");
+            notificar("¡Sala llena! Sorteando...");
             realizarSorteo(true);
         }
 
@@ -396,8 +398,6 @@ function entrarLobby(id, data, soyAdmin) {
             btnSorteo.style.display = 'none';
             resultadosList.style.display = 'block';
             renderResultados(data.resultados);
-            
-            // Botón compartir WhatsApp
             mostrarBotonCompartir(data.codigo);
         } else {
             btnSorteo.style.display = 'block';
@@ -408,6 +408,9 @@ function entrarLobby(id, data, soyAdmin) {
         panel.style.display = 'none';
         msg.style.display = 'block';
     }
+
+    // AQUI INICIAMOS EL TIMER
+    iniciarTimer(data.fechaTarget);
 
     if(unsuscribeLobby) unsuscribeLobby();
     unsuscribeLobby = onSnapshot(doc(db, "posadas", id), (docSnap) => {
@@ -435,6 +438,45 @@ function entrarLobby(id, data, soyAdmin) {
     });
 }
 
+// --- TEMPORIZADOR CORREGIDO ---
+function iniciarTimer(fecha) {
+    if(timerInterval) clearInterval(timerInterval);
+    const display = document.getElementById('timerDisplay');
+    
+    // Si no hay fecha, no hacemos nada
+    if(!fecha) {
+        display.innerText = "Sin fecha";
+        return;
+    }
+
+    const target = new Date(fecha).getTime();
+
+    // Función que calcula y pinta el tiempo
+    const actualizar = () => {
+        const now = new Date().getTime();
+        const dist = target - now;
+        
+        if (dist < 0) {
+            display.innerText = "¡Es hoy!"; 
+            display.style.color = "var(--accent)";
+            clearInterval(timerInterval); 
+            return;
+        }
+        
+        const d = Math.floor(dist / (1000 * 60 * 60 * 24));
+        const h = Math.floor((dist % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        const m = Math.floor((dist % (1000 * 60 * 60)) / (1000 * 60));
+        
+        display.innerText = `${d}d ${h}h ${m}m`;
+    };
+
+    // 1. Ejecutar INMEDIATAMENTE (para quitar los guiones)
+    actualizar();
+    
+    // 2. Luego repetir cada segundo
+    timerInterval = setInterval(actualizar, 1000);
+}
+
 function mostrarBotonCompartir(codigo) {
     const container = document.getElementById('panelAdminControls');
     let btn = document.getElementById('btnShareWhatsapp');
@@ -448,7 +490,7 @@ function mostrarBotonCompartir(codigo) {
         btn.innerHTML = `
             <div style="display:flex; align-items:center; justify-content:center; gap:10px;">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
-                Compartir Resultados
+                Invitar / Anunciar
             </div>
         `;
         
@@ -457,7 +499,7 @@ function mostrarBotonCompartir(codigo) {
             const mensaje = `🎁 *¡Ya está el Intercambio!* 🎄\n\nEntra aquí para ver quién te tocó:\n${url}\n\nCódigo de sala: *${codigo}*`;
             
             navigator.clipboard.writeText(mensaje).then(() => {
-                notificar("¡Texto copiado! Pégalo en WhatsApp");
+                notificar("¡Texto copiado! Pégalo en WhatsApp 📲");
                 window.open(`https://wa.me/?text=${encodeURIComponent(mensaje)}`, '_blank');
             });
         };
@@ -546,25 +588,6 @@ if(btnEliminar) {
             irA('home');
         });
     });
-}
-
-function iniciarTimer(fecha) {
-    if(timerInterval) clearInterval(timerInterval);
-    const display = document.getElementById('timerDisplay');
-    const target = new Date(fecha).getTime();
-
-    timerInterval = setInterval(() => {
-        const now = new Date().getTime();
-        const dist = target - now;
-        if (dist < 0) {
-            display.innerText = "¡Es hoy!"; display.style.color = "var(--accent)";
-            clearInterval(timerInterval); return;
-        }
-        const d = Math.floor(dist / (1000 * 60 * 60 * 24));
-        const h = Math.floor((dist % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-        const m = Math.floor((dist % (1000 * 60 * 60)) / (1000 * 60));
-        display.innerText = `${d}d ${h}h ${m}m`;
-    }, 1000);
 }
 
 verificarHistorial();
