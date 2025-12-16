@@ -22,7 +22,6 @@ const SERVICE_ID = "service_ao73611";
 const TEMPLATE_ID = "template_dp7jafi"; 
 const PUBLIC_KEY = "l-_4LrQW8pN7F7MiK"; 
 
-// Inicialización
 try {
     if(window.emailjs) window.emailjs.init(PUBLIC_KEY);
 } catch (e) { console.warn("EmailJS init warning:", e); }
@@ -32,6 +31,17 @@ const db = getFirestore(app);
 const auth = getAuth(app);
 const provider = new GoogleAuthProvider();
 provider.setCustomParameters({ prompt: 'select_account' });
+
+// Bandera para proteger el envío de correos
+let isSendingEmails = false;
+
+// --- PROTECCIÓN CONTRA CIERRE ACCIDENTAL ---
+window.addEventListener('beforeunload', (e) => {
+    if (isSendingEmails) {
+        e.preventDefault();
+        e.returnValue = ''; // Muestra la alerta del navegador
+    }
+});
 
 // --- UI HELPERS ---
 function notificar(msg) {
@@ -45,7 +55,6 @@ function notificar(msg) {
     toast.className = 'toast';
     toast.innerText = msg;
     container.appendChild(toast);
-    
     setTimeout(() => { toast.remove(); }, 3000);
 }
 
@@ -57,7 +66,6 @@ function confirmar(mensaje, accionSi) {
     const btnSi = document.getElementById('btnSiConfirm');
     const btnNo = document.getElementById('btnNoConfirm');
     
-    // Clonar para limpiar eventos previos
     const nuevoSi = btnSi.cloneNode(true);
     const nuevoNo = btnNo.cloneNode(true);
     
@@ -247,18 +255,17 @@ window.eliminarEventoExterno = (id) => {
     });
 };
 
-// --- CREAR SALA (CON VALIDACIÓN DE FECHA) ---
+// --- CREAR SALA (FECHA VALIDADA) ---
 const modalCrear = document.getElementById('modalCrearPosada');
 document.getElementById('btnAbrirModal')?.addEventListener('click', () => {
     document.getElementById('newNombre').value = "";
     const fechaInput = document.getElementById('newFecha');
     fechaInput.value = "";
     
-    // --- NUEVO: BLOQUEAR FECHAS PASADAS ---
+    // Bloquear fechas pasadas
     const now = new Date();
     now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
     fechaInput.min = now.toISOString().slice(0, 16);
-    // --------------------------------------
 
     if(modalCrear) modalCrear.style.display = 'flex';
 });
@@ -275,7 +282,6 @@ document.getElementById('btnConfirmarCrear')?.addEventListener('click', async ()
 
     if(!nombre || !fecha || !max) return notificar("Faltan datos");
 
-    // --- NUEVO: DISABLE BUTTON ---
     btn.innerText = "Creando..."; 
     btn.disabled = true;
 
@@ -309,7 +315,6 @@ document.getElementById('btnIrASala')?.addEventListener('click', () => {
 });
 
 async function intentarUnirse(codigo, nombreAutenticado) {
-    // NUEVO: Feedback visual en botón unirse
     const btnUnirse = document.getElementById('btnIrASala');
     const txtOriginal = btnUnirse.innerText;
     btnUnirse.innerText = "..."; btnUnirse.disabled = true;
@@ -345,40 +350,49 @@ async function intentarUnirse(codigo, nombreAutenticado) {
     }
 }
 
-// --- REGISTRO DE USUARIO ---
+// --- REGISTRO DE USUARIO (CON VALIDACIÓN DE NOMBRES Y EMAIL) ---
 document.getElementById('formRegistro')?.addEventListener('submit', async (e) => {
     e.preventDefault();
     const btn = document.getElementById('btnSubmitRegistro');
     
-    // --- NUEVO: TRIM INPUTS ---
     const nombre = document.getElementById('regNombre').value.trim();
     const email = document.getElementById('regEmail').value.trim();
     const deseo = document.getElementById('regDeseo').value.trim();
 
-    // Validar email simple
-    if(!email.includes('@')) return notificar("Correo inválido");
+    // 1. Validación de Email básica (Anti-dedazos)
+    if(!email.includes('@') || !email.includes('.')) return notificar("Correo inválido");
 
-    btn.innerText = "Entrando..."; btn.disabled = true;
+    btn.innerText = "Validando..."; btn.disabled = true;
 
     try {
         const salaRef = doc(db, "posadas", salaActualId);
         const snap = await getDoc(salaRef);
         const data = snap.data();
 
-        // Verificar si existe nombre igual (si existe, lo loguea, si no, lo crea)
-        const existe = data.participantes.find(p => p.nombre.toLowerCase() === nombre.toLowerCase());
+        // 2. BUSCAR NOMBRE DUPLICADO
+        const usuarioExistente = data.participantes.find(p => p.nombre.toLowerCase() === nombre.toLowerCase());
         
-        if (existe) {
-            notificar("¡Bienvenido de nuevo!");
-            guardarSesionLocal(data.codigo, nombre);
-            miNombreEnSala = nombre;
-            entrarLobby(salaActualId, data, false);
-            return;
+        if (usuarioExistente) {
+            // SI EL EMAIL COINCIDE -> ES LOGIN (Tu cuenta)
+            if (usuarioExistente.email.toLowerCase() === email.toLowerCase()) {
+                notificar("¡Bienvenido de nuevo!");
+                guardarSesionLocal(data.codigo, nombre);
+                miNombreEnSala = nombre;
+                entrarLobby(salaActualId, data, false);
+                return;
+            } else {
+                // SI EL EMAIL NO COINCIDE -> ES UN IMPOSTOR O NOMBRE REPETIDO
+                notificar(`El nombre '${nombre}' ya está ocupado. Usa '${nombre} P.'`);
+                btn.innerText = "Entrar"; btn.disabled = false;
+                return; // Bloquear registro
+            }
         }
 
+        // Validaciones extra
         if(data.estado === 'cerrada') return notificar("El sorteo ya cerró");
         if(data.participantes.length >= data.maxParticipantes) return notificar("Sala llena");
 
+        // Registrar nuevo
         await updateDoc(salaRef, { participantes: arrayUnion({ nombre, email, deseo }) });
         guardarSesionLocal(data.codigo, nombre);
         miNombreEnSala = nombre;
@@ -459,10 +473,13 @@ if(btnPreSorteo) {
     });
 }
 
-// --- SORTEO (BLINDADO) ---
+// --- SORTEO (CON PROTECCIÓN DE CIERRE) ---
 async function realizarSorteo(esAutomatico) {
     const btn = document.getElementById('btnPreSorteo');
-    if(btn) { btn.innerText = "Procesando..."; btn.disabled = true; }
+    if(btn) { btn.innerText = "Enviando correos..."; btn.disabled = true; }
+    
+    // Activar bandera de protección
+    isSendingEmails = true;
 
     try {
         const docRef = doc(db, "posadas", salaActualId);
@@ -472,6 +489,7 @@ async function realizarSorteo(esAutomatico) {
         if(parts.length < 2) {
             if(!esAutomatico) notificar("Faltan participantes");
             if(btn) { btn.innerText = "Forzar Sorteo"; btn.disabled = false; }
+            isSendingEmails = false;
             return;
         }
 
@@ -483,7 +501,6 @@ async function realizarSorteo(esAutomatico) {
             const receiver = givers[(i+1) % givers.length];
             asignaciones[giver.nombre] = receiver;
 
-            // Enviar Correo
             if(window.emailjs && giver.email && giver.email.includes('@')) {
                 await new Promise(r => setTimeout(r, 600)); 
                 
@@ -503,6 +520,8 @@ async function realizarSorteo(esAutomatico) {
     } catch (e) { 
         notificar("Error en el sorteo"); 
         if(btn) { btn.innerText = "Forzar Sorteo"; btn.disabled = false; }
+    } finally {
+        isSendingEmails = false; // Desactivar protección al terminar
     }
 }
 
