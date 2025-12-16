@@ -17,18 +17,15 @@ const firebaseConfig = {
   appId: "1:367576712970:web:51f77ff6ea7b8d83de1cf3"
 };
 
-// --- CONFIGURACIÓN EMAILJS (TUS CLAVES) ---
-const EMAIL_SERVICE_ID = "service_ao73611"; 
-const EMAIL_TEMPLATE_ID = "template_dp7jafi"; 
-const EMAIL_PUBLIC_KEY = "l-_4LrQW8pN7F7MiK"; 
+// --- TUS CLAVES DE EMAILJS ---
+const SERVICE_ID = "service_ao73611"; 
+const TEMPLATE_ID = "template_dp7jafi"; 
+const PUBLIC_KEY = "l-_4LrQW8pN7F7MiK"; 
 
-// Inicialización de seguridad
+// Inicialización básica
 try {
-    if(window.emailjs) {
-        window.emailjs.init(EMAIL_PUBLIC_KEY);
-        console.log("Sistema de correos listo ✅");
-    }
-} catch (e) { console.warn("No se pudo iniciar EmailJS automáticamente", e); }
+    if(window.emailjs) window.emailjs.init(PUBLIC_KEY);
+} catch (e) { console.warn("EmailJS warning:", e); }
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
@@ -455,7 +452,7 @@ document.getElementById('btnPreSorteo')?.addEventListener('click', () => {
     confirmar("¿Forzar sorteo ahora?", () => realizarSorteo(false));
 });
 
-// --- CORRECCIÓN DE CORREO: PASAR LA PUBLIC KEY EXPLÍCITAMENTE ---
+// --- FUNCIÓN DE SORTEO CORREGIDA (SOLUCIÓN ERROR 400) ---
 async function realizarSorteo(esAutomatico) {
     try {
         const docRef = doc(db, "posadas", salaActualId);
@@ -475,19 +472,20 @@ async function realizarSorteo(esAutomatico) {
             const receiver = givers[(i+1) % givers.length];
             asignaciones[giver.nombre] = receiver;
 
-            // Enviar Correo con la KEY EXPLÍCITA (Esto arregla el error 400)
             if(window.emailjs) {
-                // Pequeña pausa de seguridad
+                // Pausa anti-spam
                 await new Promise(r => setTimeout(r, 400));
                 
-                emailjs.send(EMAIL_SERVICE_ID, EMAIL_TEMPLATE_ID, {
+                // --- AQUÍ ESTÁ LA SOLUCIÓN ---
+                // Pasamos PUBLIC_KEY como 4to argumento para forzar la autenticación
+                emailjs.send(SERVICE_ID, TEMPLATE_ID, {
                     to_name: giver.nombre,
                     to_email: giver.email,
                     target_name: receiver.nombre,
                     target_wish: receiver.deseo
-                }, EMAIL_PUBLIC_KEY) // <--- ¡AQUÍ ESTABA LA CLAVE DEL ERROR!
-                .then(() => console.log(`✅ Correo OK para ${giver.email}`))
-                .catch(e => console.error(`❌ Error correo ${giver.email}`, e));
+                }, PUBLIC_KEY) 
+                .then(() => console.log(`✅ Enviado a ${giver.email}`))
+                .catch(e => console.error(`❌ Error 400 solucionado?`, e));
             }
         }
 
