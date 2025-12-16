@@ -22,10 +22,10 @@ const SERVICE_ID = "service_ao73611";
 const TEMPLATE_ID = "template_dp7jafi"; 
 const PUBLIC_KEY = "l-_4LrQW8pN7F7MiK"; 
 
-// Inicializar
+// Inicialización segura
 try {
     if(window.emailjs) window.emailjs.init(PUBLIC_KEY);
-} catch (e) { console.warn("EmailJS error init:", e); }
+} catch (e) { console.warn("EmailJS no cargó aun", e); }
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
@@ -42,15 +42,12 @@ function notificar(msg) {
         document.body.appendChild(container);
     }
     const toast = document.createElement('div');
-    toast.className = `toast`;
+    toast.className = 'toast';
     toast.innerText = msg;
     container.appendChild(toast);
     
-    toast.animate([{ opacity:0, transform:'translateY(-10px)' }, { opacity:1, transform:'translateY(0)' }], { duration: 300 });
-    setTimeout(() => {
-        const anim = toast.animate([{ opacity:1 }, { opacity:0 }], { duration: 300 });
-        anim.onfinish = () => toast.remove();
-    }, 3000);
+    // Animación simple CSS
+    setTimeout(() => { toast.remove(); }, 3000);
 }
 
 function confirmar(mensaje, accionSi) {
@@ -72,12 +69,12 @@ function confirmar(mensaje, accionSi) {
 
 // --- HISTORIAL ---
 function guardarSesionLocal(codigo, nombre) {
-    localStorage.setItem(`evento_${codigo}`, nombre);
+    localStorage.setItem('evento_' + codigo, nombre);
     verificarHistorial();
 }
 
 function obtenerSesionLocal(codigo) {
-    return localStorage.getItem(`evento_${codigo}`);
+    return localStorage.getItem('evento_' + codigo);
 }
 
 function verificarHistorial() {
@@ -117,14 +114,7 @@ window.reunirseRapido = async (codigo, nombre) => {
     await intentarUnirse(codigo, nombre); 
 };
 
-// --- VARIABLES ---
-let usuarioActual = null;
-let salaActualId = null;
-let miNombreEnSala = null;
-let unsuscribeLobby = null;
-let unsuscribeDashboard = null;
-let timerInterval = null;
-
+// --- NAVEGACIÓN ---
 const vistas = {
     home: document.getElementById('vistaHome'),
     registro: document.getElementById('vistaRegistro'),
@@ -133,7 +123,13 @@ const vistas = {
 };
 
 function irA(vista) {
-    Object.values(vistas).forEach(v => { if(v) v.style.display = 'none'; });
+    // Ocultar todas
+    if(vistas.home) vistas.home.style.display = 'none';
+    if(vistas.registro) vistas.registro.style.display = 'none';
+    if(vistas.lobby) vistas.lobby.style.display = 'none';
+    if(vistas.resultado) vistas.resultado.style.display = 'none';
+
+    // Mostrar la deseada
     if(vistas[vista]) vistas[vista].style.display = 'block';
     
     const btnAtras = document.getElementById('btnAtras');
@@ -153,12 +149,22 @@ function irA(vista) {
     }
 }
 
-document.getElementById('btnAtras')?.addEventListener('click', () => {
-    irA('home');
-    if(unsuscribeLobby) unsuscribeLobby();
-});
+// Listeners Seguros
+const btnAtras = document.getElementById('btnAtras');
+if(btnAtras) {
+    btnAtras.addEventListener('click', () => {
+        irA('home');
+        if(unsuscribeLobby) unsuscribeLobby();
+    });
+}
 
 // --- AUTH ---
+let usuarioActual = null;
+let salaActualId = null;
+let miNombreEnSala = null;
+let unsuscribeLobby = null;
+let unsuscribeDashboard = null;
+
 onAuthStateChanged(auth, (user) => {
     const secInvitado = document.getElementById('seccionInvitado');
     const secAdmin = document.getElementById('seccionAdmin');
@@ -178,13 +184,19 @@ onAuthStateChanged(auth, (user) => {
     }
 });
 
-document.getElementById('btnSoyAdmin')?.addEventListener('click', async () => {
-    try { await signInWithPopup(auth, provider); } catch (e) { console.error(e); }
-});
+const btnSoyAdmin = document.getElementById('btnSoyAdmin');
+if(btnSoyAdmin) {
+    btnSoyAdmin.addEventListener('click', async () => {
+        try { await signInWithPopup(auth, provider); } catch (e) { console.error(e); }
+    });
+}
 
-document.getElementById('btnLogout')?.addEventListener('click', () => {
-    confirmar("¿Quieres cerrar sesión?", () => signOut(auth));
-});
+const btnLogout = document.getElementById('btnLogout');
+if(btnLogout) {
+    btnLogout.addEventListener('click', () => {
+        confirmar("¿Quieres cerrar sesión?", () => signOut(auth));
+    });
+}
 
 // --- DASHBOARD ---
 function activarDashboard() {
@@ -250,58 +262,65 @@ window.eliminarEventoExterno = (id) => {
     });
 };
 
-document.getElementById('btnEliminarEventoFinal')?.addEventListener('click', () => {
-    confirmar("¿Borrar este evento?", async () => {
-        try { await deleteDoc(doc(db, "posadas", salaActualId)); notificar("Eliminado", "success"); irA('home'); } 
-        catch(e) { notificar("Error", "error"); }
-    });
-});
-
 // --- CREAR SALA ---
 const modalCrear = document.getElementById('modalCrearPosada');
-document.getElementById('btnAbrirModal')?.addEventListener('click', () => {
-    document.getElementById('newNombre').value = ""; document.getElementById('newFecha').value = "";
-    if(modalCrear) modalCrear.style.display = 'flex';
-});
-document.getElementById('btnCancelarModal')?.addEventListener('click', () => {
-    if(modalCrear) modalCrear.style.display = 'none';
-});
+const btnAbrirModal = document.getElementById('btnAbrirModal');
+if(btnAbrirModal) {
+    btnAbrirModal.addEventListener('click', () => {
+        document.getElementById('newNombre').value = "";
+        document.getElementById('newFecha').value = "";
+        if(modalCrear) modalCrear.style.display = 'flex';
+    });
+}
 
-document.getElementById('btnConfirmarCrear')?.addEventListener('click', async () => {
-    const nombre = document.getElementById('newNombre').value;
-    const fecha = document.getElementById('newFecha').value;
-    const max = document.getElementById('newMax').value;
-
-    if(!nombre || !fecha || !max) return notificar("Faltan datos");
-
-    const btn = document.getElementById('btnConfirmarCrear');
-    btn.innerText = "..."; btn.disabled = true;
-
-    try {
-        const codigo = Math.random().toString(36).substring(2, 6).toUpperCase();
-        await addDoc(collection(db, "posadas"), {
-            nombre, fechaTarget: fecha, maxParticipantes: parseInt(max),
-            codigo, creadorEmail: usuarioActual.email, estado: 'abierta',
-            participantes: [], resultados: {}
-        });
+const btnCancelarModal = document.getElementById('btnCancelarModal');
+if(btnCancelarModal) {
+    btnCancelarModal.addEventListener('click', () => {
         if(modalCrear) modalCrear.style.display = 'none';
-        notificar("¡Evento creado!");
-    } catch (e) { notificar("Error al crear"); } 
-    finally { btn.innerText = "Crear"; btn.disabled = false; }
-});
+    });
+}
 
-// --- LÓGICA DE UNIRSE ---
-document.getElementById('btnIrASala')?.addEventListener('click', () => {
-    const codigoInput = document.getElementById('inputCodigoHome');
-    if(!codigoInput) return;
-    
-    const codigo = codigoInput.value.trim().toUpperCase();
-    if(codigo.length < 3) return notificar("Código muy corto");
-    
-    const nombreGuardado = obtenerSesionLocal(codigo);
-    if(nombreGuardado) intentarUnirse(codigo, nombreGuardado);
-    else intentarUnirse(codigo, null);
-});
+const btnConfirmarCrear = document.getElementById('btnConfirmarCrear');
+if(btnConfirmarCrear) {
+    btnConfirmarCrear.addEventListener('click', async () => {
+        const nombre = document.getElementById('newNombre').value;
+        const fecha = document.getElementById('newFecha').value;
+        const max = document.getElementById('newMax').value;
+
+        if(!nombre || !fecha || !max) return notificar("Faltan datos");
+
+        btnConfirmarCrear.innerText = "..."; 
+        btnConfirmarCrear.disabled = true;
+
+        try {
+            const codigo = Math.random().toString(36).substring(2, 6).toUpperCase();
+            await addDoc(collection(db, "posadas"), {
+                nombre, fechaTarget: fecha, maxParticipantes: parseInt(max),
+                codigo, creadorEmail: usuarioActual.email, estado: 'abierta',
+                participantes: [], resultados: {}
+            });
+            if(modalCrear) modalCrear.style.display = 'none';
+            notificar("¡Evento creado!");
+        } catch (e) { notificar("Error al crear"); } 
+        finally { btnConfirmarCrear.innerText = "Crear"; btnConfirmarCrear.disabled = false; }
+    });
+}
+
+// --- UNIRSE ---
+const btnIrASala = document.getElementById('btnIrASala');
+if(btnIrASala) {
+    btnIrASala.addEventListener('click', () => {
+        const codigoInput = document.getElementById('inputCodigoHome');
+        if(!codigoInput) return;
+        
+        const codigo = codigoInput.value.trim().toUpperCase();
+        if(codigo.length < 3) return notificar("Código muy corto");
+        
+        const nombreGuardado = obtenerSesionLocal(codigo);
+        if(nombreGuardado) intentarUnirse(codigo, nombreGuardado);
+        else intentarUnirse(codigo, null);
+    });
+}
 
 async function intentarUnirse(codigo, nombreAutenticado) {
     try {
@@ -310,7 +329,7 @@ async function intentarUnirse(codigo, nombreAutenticado) {
 
         if(snap.empty) {
             notificar("El evento no existe");
-            localStorage.removeItem(`evento_${codigo}`);
+            localStorage.removeItem('evento_' + codigo);
             verificarHistorial();
             document.getElementById('inputCodigoHome').value = "";
             return;
@@ -333,45 +352,49 @@ async function intentarUnirse(codigo, nombreAutenticado) {
     }
 }
 
-document.getElementById('formRegistro')?.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const nombre = document.getElementById('regNombre').value.trim();
-    const email = document.getElementById('regEmail').value.trim();
-    const deseo = document.getElementById('regDeseo').value.trim();
+const formRegistro = document.getElementById('formRegistro');
+if(formRegistro) {
+    formRegistro.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const nombre = document.getElementById('regNombre').value.trim();
+        const email = document.getElementById('regEmail').value.trim();
+        const deseo = document.getElementById('regDeseo').value.trim();
 
-    try {
-        const salaRef = doc(db, "posadas", salaActualId);
-        const snap = await getDoc(salaRef);
-        const data = snap.data();
+        try {
+            const salaRef = doc(db, "posadas", salaActualId);
+            const snap = await getDoc(salaRef);
+            const data = snap.data();
 
-        if (data.participantes.some(p => p.nombre.toLowerCase() === nombre.toLowerCase())) {
-            notificar("¡Bienvenido de nuevo!");
+            const existe = data.participantes.find(p => p.nombre.toLowerCase() === nombre.toLowerCase());
+            if (existe) {
+                notificar("¡Bienvenido de nuevo!");
+                guardarSesionLocal(data.codigo, nombre);
+                miNombreEnSala = nombre;
+                entrarLobby(salaActualId, data, false);
+                return;
+            }
+
+            if(data.estado === 'cerrada') return notificar("El sorteo ya cerró");
+            if(data.participantes.length >= data.maxParticipantes) return notificar("Sala llena");
+
+            await updateDoc(salaRef, { participantes: arrayUnion({ nombre, email, deseo }) });
             guardarSesionLocal(data.codigo, nombre);
             miNombreEnSala = nombre;
-            entrarLobby(salaActualId, data, false);
-            return;
-        }
 
-        if(data.estado === 'cerrada') return notificar("El sorteo ya cerró");
-        if(data.participantes.length >= data.maxParticipantes) return notificar("Sala llena");
+            const snapFinal = await getDoc(salaRef);
+            const dataFinal = snapFinal.data();
+            if(dataFinal.participantes.length === dataFinal.maxParticipantes && dataFinal.estado === 'abierta') {
+                notificar("¡Sala llena! Sorteando...");
+                realizarSorteo(true);
+            }
 
-        await updateDoc(salaRef, { participantes: arrayUnion({ nombre, email, deseo }) });
-        guardarSesionLocal(data.codigo, nombre);
-        miNombreEnSala = nombre;
+            entrarLobby(salaActualId, dataFinal, false);
 
-        const snapFinal = await getDoc(salaRef);
-        const dataFinal = snapFinal.data();
-        if(dataFinal.participantes.length === dataFinal.maxParticipantes && dataFinal.estado === 'abierta') {
-            notificar("¡Sala llena! Sorteando...");
-            realizarSorteo(true);
-        }
+        } catch (e) { notificar("Error al entrar"); }
+    });
+}
 
-        entrarLobby(salaActualId, dataFinal, false);
-
-    } catch (e) { notificar("Error al entrar"); }
-});
-
-// --- LOBBY Y SORTEO ---
+// --- LOBBY ---
 function entrarLobby(id, data, soyAdmin) {
     salaActualId = id;
     irA('lobby');
@@ -402,8 +425,6 @@ function entrarLobby(id, data, soyAdmin) {
         msg.style.display = 'block';
     }
 
-    iniciarTimer(data.fechaTarget);
-
     if(unsuscribeLobby) unsuscribeLobby();
     unsuscribeLobby = onSnapshot(doc(db, "posadas", id), (docSnap) => {
         if(!docSnap.exists()) return;
@@ -429,30 +450,14 @@ function entrarLobby(id, data, soyAdmin) {
     });
 }
 
-function iniciarTimer(fecha) {
-    if(timerInterval) clearInterval(timerInterval);
-    const display = document.getElementById('timerDisplay');
-    const target = new Date(fecha).getTime();
-
-    timerInterval = setInterval(() => {
-        const now = new Date().getTime();
-        const dist = target - now;
-        if (dist < 0) {
-            display.innerText = "¡Es hoy!"; display.style.color = "var(--accent)";
-            clearInterval(timerInterval); return;
-        }
-        const d = Math.floor(dist / (1000 * 60 * 60 * 24));
-        const h = Math.floor((dist % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-        const m = Math.floor((dist % (1000 * 60 * 60)) / (1000 * 60));
-        display.innerText = `${d}d ${h}h ${m}m`;
-    }, 1000);
+const btnPreSorteo = document.getElementById('btnPreSorteo');
+if(btnPreSorteo) {
+    btnPreSorteo.addEventListener('click', () => {
+        confirmar("¿Forzar sorteo ahora?", () => realizarSorteo(false));
+    });
 }
 
-document.getElementById('btnPreSorteo')?.addEventListener('click', () => {
-    confirmar("¿Forzar sorteo ahora?", () => realizarSorteo(false));
-});
-
-// --- LÓGICA DE CORREO (CORREGIDA Y VALIDADADA) ---
+// --- SORTEO Y EMAIL CORREGIDO ---
 async function realizarSorteo(esAutomatico) {
     try {
         const docRef = doc(db, "posadas", salaActualId);
@@ -472,39 +477,26 @@ async function realizarSorteo(esAutomatico) {
             const receiver = givers[(i+1) % givers.length];
             asignaciones[giver.nombre] = receiver;
 
-            // VALIDACIÓN: Si el usuario no tiene email, no intentamos enviar
-            if(!giver.email || giver.email === "") {
-                console.warn(`El usuario ${giver.nombre} no tiene email. Se saltó el envío.`);
-                continue; 
-            }
-
-            if(window.emailjs) {
-                // Pausa para evitar error 429 (Rate Limit)
+            // Enviar Correo (Solo si tienen mail válido)
+            if(window.emailjs && giver.email && giver.email.includes('@')) {
+                // Pausa para evitar errores de red
                 await new Promise(r => setTimeout(r, 600)); 
                 
-                const templateParams = {
+                emailjs.send(SERVICE_ID, TEMPLATE_ID, {
                     to_name: giver.nombre,
                     to_email: giver.email,
                     target_name: receiver.nombre,
                     target_wish: receiver.deseo
-                };
-
-                // Console log para ver qué se envía (DEBUG)
-                console.log("Enviando a:", giver.email, templateParams);
-
-                emailjs.send(SERVICE_ID, TEMPLATE_ID, templateParams, PUBLIC_KEY)
-                .then(res => console.log(`✅ Enviado a ${giver.email} (${res.status})`))
-                .catch(err => console.error(`❌ Error con ${giver.email}:`, err));
+                }, PUBLIC_KEY)
+                .then(() => console.log("Enviado a " + giver.email))
+                .catch(e => console.error("Error email", e));
             }
         }
 
         await updateDoc(docRef, { estado: 'cerrada', resultados: asignaciones });
         if(!esAutomatico) notificar("Sorteo realizado");
 
-    } catch (e) { 
-        console.error(e);
-        notificar("Error en el sorteo"); 
-    }
+    } catch (e) { notificar("Error en el sorteo"); }
 }
 
 function renderResultados(resultados) {
@@ -529,11 +521,14 @@ function mostrarResultado(destino) {
     document.getElementById('resDeseoDestino').innerText = destino.deseo;
 }
 
-document.getElementById('btnEliminarEventoFinal')?.addEventListener('click', () => {
-    confirmar("¿Eliminar evento permanentemente?", async () => {
-        await deleteDoc(doc(db, "posadas", salaActualId));
-        irA('home');
+const btnEliminar = document.getElementById('btnEliminarEventoFinal');
+if(btnEliminar) {
+    btnEliminar.addEventListener('click', () => {
+        confirmar("¿Eliminar evento permanentemente?", async () => {
+            await deleteDoc(doc(db, "posadas", salaActualId));
+            irA('home');
+        });
     });
-});
+}
 
 verificarHistorial();
