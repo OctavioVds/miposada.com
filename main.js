@@ -22,10 +22,10 @@ const SERVICE_ID = "service_ao73611";
 const TEMPLATE_ID = "template_dp7jafi"; 
 const PUBLIC_KEY = "l-_4LrQW8pN7F7MiK"; 
 
-// Inicialización segura
+// Inicialización
 try {
     if(window.emailjs) window.emailjs.init(PUBLIC_KEY);
-} catch (e) { console.warn("EmailJS no cargó aun", e); }
+} catch (e) { console.warn("EmailJS init warning:", e); }
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
@@ -46,7 +46,6 @@ function notificar(msg) {
     toast.innerText = msg;
     container.appendChild(toast);
     
-    // Animación simple CSS
     setTimeout(() => { toast.remove(); }, 3000);
 }
 
@@ -57,6 +56,8 @@ function confirmar(mensaje, accionSi) {
 
     const btnSi = document.getElementById('btnSiConfirm');
     const btnNo = document.getElementById('btnNoConfirm');
+    
+    // Clonar para limpiar eventos previos
     const nuevoSi = btnSi.cloneNode(true);
     const nuevoNo = btnNo.cloneNode(true);
     
@@ -123,13 +124,7 @@ const vistas = {
 };
 
 function irA(vista) {
-    // Ocultar todas
-    if(vistas.home) vistas.home.style.display = 'none';
-    if(vistas.registro) vistas.registro.style.display = 'none';
-    if(vistas.lobby) vistas.lobby.style.display = 'none';
-    if(vistas.resultado) vistas.resultado.style.display = 'none';
-
-    // Mostrar la deseada
+    Object.values(vistas).forEach(v => { if(v) v.style.display = 'none'; });
     if(vistas[vista]) vistas[vista].style.display = 'block';
     
     const btnAtras = document.getElementById('btnAtras');
@@ -149,14 +144,10 @@ function irA(vista) {
     }
 }
 
-// Listeners Seguros
-const btnAtras = document.getElementById('btnAtras');
-if(btnAtras) {
-    btnAtras.addEventListener('click', () => {
-        irA('home');
-        if(unsuscribeLobby) unsuscribeLobby();
-    });
-}
+document.getElementById('btnAtras')?.addEventListener('click', () => {
+    irA('home');
+    if(unsuscribeLobby) unsuscribeLobby();
+});
 
 // --- AUTH ---
 let usuarioActual = null;
@@ -184,19 +175,13 @@ onAuthStateChanged(auth, (user) => {
     }
 });
 
-const btnSoyAdmin = document.getElementById('btnSoyAdmin');
-if(btnSoyAdmin) {
-    btnSoyAdmin.addEventListener('click', async () => {
-        try { await signInWithPopup(auth, provider); } catch (e) { console.error(e); }
-    });
-}
+document.getElementById('btnSoyAdmin')?.addEventListener('click', async () => {
+    try { await signInWithPopup(auth, provider); } catch (e) { console.error(e); }
+});
 
-const btnLogout = document.getElementById('btnLogout');
-if(btnLogout) {
-    btnLogout.addEventListener('click', () => {
-        confirmar("¿Quieres cerrar sesión?", () => signOut(auth));
-    });
-}
+document.getElementById('btnLogout')?.addEventListener('click', () => {
+    confirmar("¿Quieres cerrar sesión?", () => signOut(auth));
+});
 
 // --- DASHBOARD ---
 function activarDashboard() {
@@ -262,74 +247,73 @@ window.eliminarEventoExterno = (id) => {
     });
 };
 
-
-// --- CREAR SALA ---
+// --- CREAR SALA (CON VALIDACIÓN DE FECHA) ---
 const modalCrear = document.getElementById('modalCrearPosada');
 document.getElementById('btnAbrirModal')?.addEventListener('click', () => {
     document.getElementById('newNombre').value = "";
+    const fechaInput = document.getElementById('newFecha');
+    fechaInput.value = "";
     
-    const inputFecha = document.getElementById('newFecha');
-    inputFecha.value = "";
-    
-    // --- LÓGICA PARA BLOQUEAR FECHAS PASADAS ---
+    // --- NUEVO: BLOQUEAR FECHAS PASADAS ---
     const now = new Date();
-    now.setMinutes(now.getMinutes() - now.getTimezoneOffset()); // Ajustar a tu zona horaria local
-    inputFecha.min = now.toISOString().slice(0, 16); // Formato exacto para datetime-local
-    // -------------------------------------------
+    now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+    fechaInput.min = now.toISOString().slice(0, 16);
+    // --------------------------------------
 
     if(modalCrear) modalCrear.style.display = 'flex';
 });
 
-const btnCancelarModal = document.getElementById('btnCancelarModal');
-if(btnCancelarModal) {
-    btnCancelarModal.addEventListener('click', () => {
+document.getElementById('btnCancelarModal')?.addEventListener('click', () => {
+    if(modalCrear) modalCrear.style.display = 'none';
+});
+
+document.getElementById('btnConfirmarCrear')?.addEventListener('click', async () => {
+    const nombre = document.getElementById('newNombre').value.trim();
+    const fecha = document.getElementById('newFecha').value;
+    const max = document.getElementById('newMax').value;
+    const btn = document.getElementById('btnConfirmarCrear');
+
+    if(!nombre || !fecha || !max) return notificar("Faltan datos");
+
+    // --- NUEVO: DISABLE BUTTON ---
+    btn.innerText = "Creando..."; 
+    btn.disabled = true;
+
+    try {
+        const codigo = Math.random().toString(36).substring(2, 6).toUpperCase();
+        await addDoc(collection(db, "posadas"), {
+            nombre, fechaTarget: fecha, maxParticipantes: parseInt(max),
+            codigo, creadorEmail: usuarioActual.email, estado: 'abierta',
+            participantes: [], resultados: {}
+        });
         if(modalCrear) modalCrear.style.display = 'none';
-    });
-}
-
-const btnConfirmarCrear = document.getElementById('btnConfirmarCrear');
-if(btnConfirmarCrear) {
-    btnConfirmarCrear.addEventListener('click', async () => {
-        const nombre = document.getElementById('newNombre').value;
-        const fecha = document.getElementById('newFecha').value;
-        const max = document.getElementById('newMax').value;
-
-        if(!nombre || !fecha || !max) return notificar("Faltan datos");
-
-        btnConfirmarCrear.innerText = "..."; 
-        btnConfirmarCrear.disabled = true;
-
-        try {
-            const codigo = Math.random().toString(36).substring(2, 6).toUpperCase();
-            await addDoc(collection(db, "posadas"), {
-                nombre, fechaTarget: fecha, maxParticipantes: parseInt(max),
-                codigo, creadorEmail: usuarioActual.email, estado: 'abierta',
-                participantes: [], resultados: {}
-            });
-            if(modalCrear) modalCrear.style.display = 'none';
-            notificar("¡Evento creado!");
-        } catch (e) { notificar("Error al crear"); } 
-        finally { btnConfirmarCrear.innerText = "Crear"; btnConfirmarCrear.disabled = false; }
-    });
-}
+        notificar("¡Evento creado!");
+    } catch (e) { notificar("Error al crear"); } 
+    finally { 
+        btn.innerText = "Crear"; 
+        btn.disabled = false; 
+    }
+});
 
 // --- UNIRSE ---
-const btnIrASala = document.getElementById('btnIrASala');
-if(btnIrASala) {
-    btnIrASala.addEventListener('click', () => {
-        const codigoInput = document.getElementById('inputCodigoHome');
-        if(!codigoInput) return;
-        
-        const codigo = codigoInput.value.trim().toUpperCase();
-        if(codigo.length < 3) return notificar("Código muy corto");
-        
-        const nombreGuardado = obtenerSesionLocal(codigo);
-        if(nombreGuardado) intentarUnirse(codigo, nombreGuardado);
-        else intentarUnirse(codigo, null);
-    });
-}
+document.getElementById('btnIrASala')?.addEventListener('click', () => {
+    const codigoInput = document.getElementById('inputCodigoHome');
+    if(!codigoInput) return;
+    
+    const codigo = codigoInput.value.trim().toUpperCase();
+    if(codigo.length < 3) return notificar("Código muy corto");
+    
+    const nombreGuardado = obtenerSesionLocal(codigo);
+    if(nombreGuardado) intentarUnirse(codigo, nombreGuardado);
+    else intentarUnirse(codigo, null);
+});
 
 async function intentarUnirse(codigo, nombreAutenticado) {
+    // NUEVO: Feedback visual en botón unirse
+    const btnUnirse = document.getElementById('btnIrASala');
+    const txtOriginal = btnUnirse.innerText;
+    btnUnirse.innerText = "..."; btnUnirse.disabled = true;
+
     try {
         const q = query(collection(db, "posadas"), where("codigo", "==", codigo));
         const snap = await getDocs(q);
@@ -356,50 +340,61 @@ async function intentarUnirse(codigo, nombreAutenticado) {
     } catch (e) { 
         console.error(e);
         notificar("Error de conexión"); 
+    } finally {
+        btnUnirse.innerText = txtOriginal; btnUnirse.disabled = false;
     }
 }
 
-const formRegistro = document.getElementById('formRegistro');
-if(formRegistro) {
-    formRegistro.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const nombre = document.getElementById('regNombre').value.trim();
-        const email = document.getElementById('regEmail').value.trim();
-        const deseo = document.getElementById('regDeseo').value.trim();
+// --- REGISTRO DE USUARIO ---
+document.getElementById('formRegistro')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById('btnSubmitRegistro');
+    
+    // --- NUEVO: TRIM INPUTS ---
+    const nombre = document.getElementById('regNombre').value.trim();
+    const email = document.getElementById('regEmail').value.trim();
+    const deseo = document.getElementById('regDeseo').value.trim();
 
-        try {
-            const salaRef = doc(db, "posadas", salaActualId);
-            const snap = await getDoc(salaRef);
-            const data = snap.data();
+    // Validar email simple
+    if(!email.includes('@')) return notificar("Correo inválido");
 
-            const existe = data.participantes.find(p => p.nombre.toLowerCase() === nombre.toLowerCase());
-            if (existe) {
-                notificar("¡Bienvenido de nuevo!");
-                guardarSesionLocal(data.codigo, nombre);
-                miNombreEnSala = nombre;
-                entrarLobby(salaActualId, data, false);
-                return;
-            }
+    btn.innerText = "Entrando..."; btn.disabled = true;
 
-            if(data.estado === 'cerrada') return notificar("El sorteo ya cerró");
-            if(data.participantes.length >= data.maxParticipantes) return notificar("Sala llena");
+    try {
+        const salaRef = doc(db, "posadas", salaActualId);
+        const snap = await getDoc(salaRef);
+        const data = snap.data();
 
-            await updateDoc(salaRef, { participantes: arrayUnion({ nombre, email, deseo }) });
+        // Verificar si existe nombre igual (si existe, lo loguea, si no, lo crea)
+        const existe = data.participantes.find(p => p.nombre.toLowerCase() === nombre.toLowerCase());
+        
+        if (existe) {
+            notificar("¡Bienvenido de nuevo!");
             guardarSesionLocal(data.codigo, nombre);
             miNombreEnSala = nombre;
+            entrarLobby(salaActualId, data, false);
+            return;
+        }
 
-            const snapFinal = await getDoc(salaRef);
-            const dataFinal = snapFinal.data();
-            if(dataFinal.participantes.length === dataFinal.maxParticipantes && dataFinal.estado === 'abierta') {
-                notificar("¡Sala llena! Sorteando...");
-                realizarSorteo(true);
-            }
+        if(data.estado === 'cerrada') return notificar("El sorteo ya cerró");
+        if(data.participantes.length >= data.maxParticipantes) return notificar("Sala llena");
 
-            entrarLobby(salaActualId, dataFinal, false);
+        await updateDoc(salaRef, { participantes: arrayUnion({ nombre, email, deseo }) });
+        guardarSesionLocal(data.codigo, nombre);
+        miNombreEnSala = nombre;
 
-        } catch (e) { notificar("Error al entrar"); }
-    });
-}
+        const snapFinal = await getDoc(salaRef);
+        const dataFinal = snapFinal.data();
+        if(dataFinal.participantes.length === dataFinal.maxParticipantes && dataFinal.estado === 'abierta') {
+            notificar("¡Sala llena! Sorteando...");
+            realizarSorteo(true);
+        }
+
+        entrarLobby(salaActualId, dataFinal, false);
+
+    } catch (e) { notificar("Error al entrar"); }
+    finally { btn.innerText = "Entrar"; btn.disabled = false; }
+});
 
 // --- LOBBY ---
 function entrarLobby(id, data, soyAdmin) {
@@ -464,8 +459,11 @@ if(btnPreSorteo) {
     });
 }
 
-// --- SORTEO Y EMAIL CORREGIDO ---
+// --- SORTEO (BLINDADO) ---
 async function realizarSorteo(esAutomatico) {
+    const btn = document.getElementById('btnPreSorteo');
+    if(btn) { btn.innerText = "Procesando..."; btn.disabled = true; }
+
     try {
         const docRef = doc(db, "posadas", salaActualId);
         const snap = await getDoc(docRef);
@@ -473,6 +471,7 @@ async function realizarSorteo(esAutomatico) {
 
         if(parts.length < 2) {
             if(!esAutomatico) notificar("Faltan participantes");
+            if(btn) { btn.innerText = "Forzar Sorteo"; btn.disabled = false; }
             return;
         }
 
@@ -484,9 +483,8 @@ async function realizarSorteo(esAutomatico) {
             const receiver = givers[(i+1) % givers.length];
             asignaciones[giver.nombre] = receiver;
 
-            // Enviar Correo (Solo si tienen mail válido)
+            // Enviar Correo
             if(window.emailjs && giver.email && giver.email.includes('@')) {
-                // Pausa para evitar errores de red
                 await new Promise(r => setTimeout(r, 600)); 
                 
                 emailjs.send(SERVICE_ID, TEMPLATE_ID, {
@@ -495,7 +493,6 @@ async function realizarSorteo(esAutomatico) {
                     target_name: receiver.nombre,
                     target_wish: receiver.deseo
                 }, PUBLIC_KEY)
-                .then(() => console.log("Enviado a " + giver.email))
                 .catch(e => console.error("Error email", e));
             }
         }
@@ -503,7 +500,10 @@ async function realizarSorteo(esAutomatico) {
         await updateDoc(docRef, { estado: 'cerrada', resultados: asignaciones });
         if(!esAutomatico) notificar("Sorteo realizado");
 
-    } catch (e) { notificar("Error en el sorteo"); }
+    } catch (e) { 
+        notificar("Error en el sorteo"); 
+        if(btn) { btn.innerText = "Forzar Sorteo"; btn.disabled = false; }
+    }
 }
 
 function renderResultados(resultados) {

@@ -3,7 +3,13 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  
+  <meta property="og:title" content="🎄 Intercambio Navideño">
+  <meta property="og:description" content="Organiza tu sorteo de regalos fácil y rápido. ¡Entra aquí!">
+  <meta property="og:image" content="https://img.icons8.com/color/480/christmas-gift.png">
+  
   <title>Intercambio Navideño</title>
+  
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -16,12 +22,10 @@
     <div class="card">
       
       <div class="header-nav">
-          <button id="btnAtras" class="btn-icon" style="display: none;">
+          <button id="btnAtras" class="btn-icon" style="display: none;" title="Volver">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
           </button>
-          
           <h1 id="tituloPrincipal">Intercambio</h1>
-          
           <button id="btnLogout" class="btn-text" style="display: none;">Salir</button>
       </div>
 
@@ -74,7 +78,7 @@
             <label>Sugerencia de regalo</label>
             <input type="text" id="regDeseo" required autocomplete="off" placeholder="Ej: Libro, Taza...">
           </div>
-          <button type="submit" class="btn-primary">Entrar</button>
+          <button type="submit" class="btn-primary" id="btnSubmitRegistro">Entrar</button>
         </form>
       </div>
 
@@ -122,7 +126,7 @@
               <p id="resDeseoDestino" style="font-size:1.3rem; color:#333; font-style:italic; font-weight:600;">...</p>
           </div>
           <p style="font-size: 0.8rem; color: #888; margin-top: 24px;">
-              Enviamos un correo de confirmación a tu email. 🤫
+              Enviamos un correo de confirmación. 🤫
           </p>
       </div>
 
@@ -143,7 +147,7 @@
         <div class="field">
             <label>Capacidad</label>
             <input type="number" id="newMax" value="10" min="2">
-            <small style="color:#AAA; font-size:0.75rem; display:block; margin-top:5px;">El sorteo inicia solo al llegar a este número.</small>
+            <small style="color:#AAA; font-size:0.75rem; display:block; margin-top:5px;">El sorteo inicia al llegar a este número.</small>
         </div>
         <div style="display:flex; gap:12px; margin-top:32px;">
             <button id="btnCancelarModal" class="btn-ghost" style="flex:1">Cancelar</button>
